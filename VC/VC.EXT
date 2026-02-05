@@ -1,0 +1,4 @@
+zip:	pkunzip -d !.! !.\
+arj:	arj x -v -y !.! !.\
+lzh:	lha x !.!
+rar:    rar x -y !.! !.\

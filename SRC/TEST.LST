@@ -1,0 +1,58 @@
+Turbo Assembler	 Version 4.1	    02/05/26 22:14:13	    Page 1
+test.asm
+
+
+
+      1				     ; Meow
+      2
+      3	0000			     .model tiny
+      4	0000			     .code
+      5				     org 100h
+      6
+      7	0100			     start:
+      8	0100  B4 09				     mov ah, 09h
+      9	0102  BA 010Cr				     mov dx, offset Hello
+     10	0105  CD 21				     int 21h		     ; Dos Fn -	print string [21h]
+     11
+     12	0107  B8 4C00				     mov ax, 4C00h
+     13	010A  CD 21				     int 21h		     ; Dos Fn -	exit (al) [21h]
+     14
+     15	010C  0D 0A 4D 45 4F 57	20+  Hello:	     db	0dh, 0ah, 'MEOW	MEOW'
+     16	      4D 45 4F 57
+     17	0117  0D 0A 49 20 61 6D	20+		     db	0dh, 0ah, 'I am	hungry$'
+     18	      68 75 6E 67 72 79	24
+     19
+     20				     end	     start
+Turbo Assembler	 Version 4.1	    02/05/26 22:14:13	    Page 2
+Symbol Table
+
+
+
+
+Symbol Name			  Type	 Value
+
+??DATE				  Text	 "02/05/26"
+??FILENAME			  Text	 "test	  "
+??TIME				  Text	 "22:14:13"
+??VERSION			  Number 040A
+@32BIT				  Text	 0
+@CODE				  Text	 DGROUP
+@CODESIZE			  Text	 0
+@CPU				  Text	 0101H
+@CURSEG				  Text	 _TEXT
+@DATA				  Text	 DGROUP
+@DATASIZE			  Text	 0
+@FILENAME			  Text	 TEST
+@INTERFACE			  Text	 000H
+@MODEL				  Text	 1
+@STACK				  Text	 DGROUP
+@WORDSIZE			  Text	 2
+HELLO				  Near	 DGROUP:010C
+START				  Near	 DGROUP:0100
+
+Groups & Segments		  Bit Size Align  Combine Class
+
+DGROUP				  Group
+  _DATA				  16  0000 Word	  Public  DATA
+  _TEXT				  16  0125 Word	  Public  CODE
+
