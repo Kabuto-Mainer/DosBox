@@ -1,0 +1,147 @@
+Turbo Assembler	 Version 4.1	    02/07/26 15:03:36	    Page 1
+inp.asm
+
+
+
+      1	0000			     .model tiny
+      2	0000			     .code
+      3
+      4	      =001E		     ascii_0	     equ     30
+      5				     org 100h
+      6
+      7	0100			     start:
+      8	0100  B4 09			     mov ah, 09h
+      9	0102  BA 0150r			     mov dx, offset Init
+     10	0105  CD 21			     int 21h
+     11
+     12	0107  B4 08			     mov ah, 08h
+     13	0109  CD 21			     int 21h	     ; get char	to al
+     14	010B  B4 00			     mov ah, 0
+     15
+     16	010D  3D 0031			     cmp ax, 31h
+     17	0110  74 12			     je	.L1
+     18	0112  3D 0032			     cmp ax, 32h
+     19	0115  74 13			     je	.L2
+     20	0117  3D 0033			     cmp ax, 33h
+     21	011A  74 14			     je	.L3
+     22	011C  3D 0034			     cmp ax, 34h
+     23	011F  74 15			     je	.L4
+     24	0121  EB 19 90			     jmp .L5
+     25
+     26	0124			     .L1:
+     27	0124  BA 0185r			     mov dx, offset Choose_1
+     28	0127  EB 19 90			     jmp .L6
+     29	012A			     .L2:
+     30	012A  BA 0196r			     mov dx, offset Choose_2
+     31	012D  EB 13 90			     jmp .L6
+     32	0130			     .L3:
+     33	0130  BA 01A2r			     mov dx, offset Choose_3
+     34	0133  EB 0D 90			     jmp .L6
+     35	0136			     .L4:
+     36	0136  BA 01B1r			     mov dx, offset Choose_4
+     37	0139  EB 07 90			     jmp .L6
+     38	013C			     .L5:
+     39	013C  BA 01CCr			     mov dx, offset Err_Input
+     40	013F  EB 01 90			     jmp .L6
+     41	0142			     .L6:
+     42	0142  B4 09			     mov ah, 09h
+     43	0144  B0 00			     mov al, 0h
+     44	0146  CD 21			     int 21h
+     45	0148  EB 01 90			     jmp .End_Pr
+     46
+     47	014B			     .End_Pr:
+     48	014B  B8 4C00			     mov ax, 4C00h
+     49	014E  CD 21			     int 21h
+     50
+     51	0150			     Init:
+     52	0150  48 65 6C 6C 6F 2E	20+	     db	'Hello.	Type number (1-4) and I	tell you one phrase'
+     53	      54 79 70 65 20 6E	75+
+     54	      6D 62 65 72 20 28	31+
+     55	      2D 34 29 20 61 6E	64+
+     56	      20 49 20 74 65 6C	6C+
+     57	      20 79 6F 75 20 6F	6E+
+Turbo Assembler	 Version 4.1	    02/07/26 15:03:36	    Page 2
+inp.asm
+
+
+
+     58	      65 20 70 68 72 61	73+
+     59	      65
+     60	0182  0D 0A 24			     db	0dh, 0ah, '$'
+     61
+     62	0185			     Choose_1:
+     63	0185  50 6F 6C 74 6F 72	61+	     db	'Poltorashka Meow$'
+     64	      73 68 6B 61 20 4D	65+
+     65	      6F 77 24
+     66
+     67	0196			     Choose_2:
+     68	0196  44 6F 6F 6D 20 53	6C+	     db	'Doom Slayer$'
+     69	      61 79 65 72 24
+     70
+     71	01A2			     Choose_3:
+     72	01A2  4D 61 63 61 6E 20	2D+	     db	'Macan - xyesos$'
+     73	      20 78 79 65 73 6F	73+
+     74	      24
+     75
+     76	01B1			     Choose_4:
+     77	01B1  54 68 61 6E 6B 73	20+	     db	'Thanks	for zero BRS in	cem$'
+     78	      66 6F 72 20 7A 65	72+
+     79	      6F 20 42 52 53 20	69+
+     80	      6E 20 63 65 6D 24
+     81
+     82	01CC			     Err_Input:
+     83	01CC  59 6F 75 20 64 6F	6E+	     db	"You don't type	number in range	(1-4), so I break$"
+     84	      27 74 20 74 79 70	65+
+     85	      20 6E 75 6D 62 65	72+
+     86	      20 69 6E 20 72 61	6E+
+     87	      67 65 20 28 31 2D	34+
+     88	      29 2C 20 73 6F 20	49+
+     89	      20 62 72 65 61 6B	24
+     90
+     91				     end     start
+Turbo Assembler	 Version 4.1	    02/07/26 15:03:36	    Page 3
+Symbol Table
+
+
+
+
+Symbol Name			  Type	 Value
+
+.END_PR				  Near	 DGROUP:014B
+.L1				  Near	 DGROUP:0124
+.L2				  Near	 DGROUP:012A
+.L3				  Near	 DGROUP:0130
+.L4				  Near	 DGROUP:0136
+.L5				  Near	 DGROUP:013C
+.L6				  Near	 DGROUP:0142
+??DATE				  Text	 "02/07/26"
+??FILENAME			  Text	 "inp	  "
+??TIME				  Text	 "15:03:36"
+??VERSION			  Number 040A
+@32BIT				  Text	 0
+@CODE				  Text	 DGROUP
+@CODESIZE			  Text	 0
+@CPU				  Text	 0101H
+@CURSEG				  Text	 _TEXT
+@DATA				  Text	 DGROUP
+@DATASIZE			  Text	 0
+@FILENAME			  Text	 INP
+@INTERFACE			  Text	 000H
+@MODEL				  Text	 1
+@STACK				  Text	 DGROUP
+@WORDSIZE			  Text	 2
+ASCII_0				  Number 001E
+CHOOSE_1			  Near	 DGROUP:0185
+CHOOSE_2			  Near	 DGROUP:0196
+CHOOSE_3			  Near	 DGROUP:01A2
+CHOOSE_4			  Near	 DGROUP:01B1
+ERR_INPUT			  Near	 DGROUP:01CC
+INIT				  Near	 DGROUP:0150
+START				  Near	 DGROUP:0100
+
+Groups & Segments		  Bit Size Align  Combine Class
+
+DGROUP				  Group
+  _DATA				  16  0000 Word	  Public  DATA
+  _TEXT				  16  01FD Word	  Public  CODE
+
