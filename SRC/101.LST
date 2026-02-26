@@ -1,0 +1,189 @@
+Turbo Assembler	 Version 4.1	    02/11/26 22:14:00	    Page 1
+101.asm
+
+
+
+      1
+      2	0000			     .model tiny
+      3	0000			     dataseg
+      4	0000  0A				     X_cord  db	     10
+      5	0001  0A				     Y_cord  db	     10
+      6	0002  000A				     Len	     dw	     10
+      7	0004  0005				     Hight   dw	     5
+      8	0006  0189r				     String  dw	 offset	STD_STR
+      9	0008  4C03				     Symbol  dw	     4c03h
+     10	000A			     .code
+     11				     org 100h
+     12
+     13	0100			     start:
+     14	0100  FC				     cld		     ;set track
+     15	0101  B9 B800				     mov cx, 0b800h
+     16	0104  8E C1				     mov es, cx		     ;init video data address
+     17
+     18
+     19						     ;where can	be checks arguments to set params
+     20
+     21
+     22	0106  A0 0001r				     mov al, Y_cord
+     23	0109  B3 A0				     mov bl, 160
+     24	010B  F6 E3				     mul bl
+     25	010D  03 D0				     add dx, ax		     ;dx init by zero
+     26	010F  A0 0000r				     mov al, X_cord
+     27	0112  B3 02				     mov bl, 2
+     28	0114  F6 E3				     mul bl		     ;todo: check, should ah = 0
+     29	0116  03 D0				     add dx, ax
+     30
+     31	0118  52				     push dx		     ;save dx for draw columns
+     32	0119  06				     push es
+     33	011A  E8 0049				     call create_point
+     34
+     35	011D  8E C0				     mov es, ax
+     36	011F  8B 0E 0002r			     mov cx, Len
+     37	0123  A1 0008r				     mov ax, Symbol
+     38
+     39	0126  F3> AB				     rep stosw		     ;draw first line
+     40
+     41	0128  07				     pop es
+     42	0129  5A				     pop dx
+     43	012A  52				     push dx		     ;we need to save 'dx'
+     44
+     45	012B  A1 0004r				     mov ax, Hight
+     46	012E  B3 A0				     mov bl, 160
+     47	0130  F6 E3				     mul bl
+     48	0132  03 D0				     add dx, ax
+     49
+     50	0134  06				     push es
+     51	0135  E8 002E				     call create_point
+     52
+     53	0138  8E C0				     mov es, ax
+     54	013A  8B 0E 0002r			     mov cx, Len
+     55	013E  A1 0008r				     mov ax, Symbol
+     56
+     57	0141  F3> AB				     rep stosw		     ;draw second line
+Turbo Assembler	 Version 4.1	    02/11/26 22:14:00	    Page 2
+101.asm
+
+
+
+     58
+     59	0143  07				     pop es
+     60	0144  5A				     pop dx
+     61
+     62	0145  8B 0E 0004r			     mov cx, Hight
+     63	0149  A1 0008r				     mov ax, Symbol
+     64
+     65	014C  E8 0029				     call draw_column	     ;draw first column
+     66
+     67	014F  A1 0002r				     mov ax, Len
+     68	0152  B3 02				     mov bl, 2
+     69	0154  F6 E3				     mul bl
+     70
+     71	0156  52				     push dx
+     72	0157  03 D0				     add dx, ax
+     73	0159  A1 0008r				     mov ax, Symbol
+     74	015C  8B DA				     mov bx, dx
+     75
+     76	015E  E8 0017				     call draw_column
+     77
+     78	0161  B8 4C00				     mov ax, 4c00h
+     79	0164  CD 21				     int 21h
+     80
+     81	0166			     create_point    PROC
+     82						     ;es - start video memory
+     83						     ;dx - offset needed pixel
+     84						     ;this proc:
+     85						     ;	     mov es to ax
+     86						     ;	     add (dx / 16) to ax
+     87						     ;	     mov (dx mod 16) to	dx
+     88						     ;It's needed, because cirle(rep stosw) use	only 'dl'
+     89
+     90						     ;ax - main	adr, dx	- offset
+     91
+     92	0166  52				     push dx
+     93	0167  8C C0				     mov ax, es
+     94	0169  D1 EA D1 EA D1 EA	D1+		     shr dx, 4		     ;dx=dx / 16
+     95	      EA
+     96	0171  03 C2				     add ax, dx
+     97	0173  5A				     pop dx
+     98	0174  83 E2 10				     and dx, 16		     ;dx=dx mod	16
+     99	0177  C3				     ret
+    100
+    101	0178			     create_point    ENDP
+    102
+    103	0178			     draw_column     PROC
+    104						     ;ax - symbol
+    105						     ;bx - start pixel
+    106						     ;cx - len
+    107						     ;es - start video memory
+    108
+    109	0178  53				     push bx
+    110	0179  51				     push cx
+    111	017A  52				     push dx
+    112
+    113	017B			     .DRAW_COL:
+    114	017B  26: 89 07				     mov word ptr es:[bx], ax
+Turbo Assembler	 Version 4.1	    02/11/26 22:14:00	    Page 3
+101.asm
+
+
+
+    115	017E  BA 00A0				     mov dx, 160
+    116	0181  03 DA				     add bx, dx
+    117
+    118	0183  E2 F6				     loop .DRAW_COL
+    119
+    120	0185  5A				     pop dx
+    121	0186  59				     pop cx
+    122	0187  5B				     pop bx
+    123	0188  C3				     ret
+    124
+    125	0189			     draw_column	     ENDP
+    126
+    127
+    128
+    129	0189  50 6F 6C 74 6F 72	61+  STD_STR	     db	     'Poltorashka$'
+    130	      73 68 6B 61 24
+    131
+    132				     end	     start
+Turbo Assembler	 Version 4.1	    02/11/26 22:14:00	    Page 4
+Symbol Table
+
+
+
+
+Symbol Name			  Type	 Value
+
+.DRAW_COL			  Near	 DGROUP:017B
+??DATE				  Text	 "02/11/26"
+??FILENAME			  Text	 "101	  "
+??TIME				  Text	 "22:14:00"
+??VERSION			  Number 040A
+@32BIT				  Text	 0
+@CODE				  Text	 DGROUP
+@CODESIZE			  Text	 0
+@CPU				  Text	 0101H
+@CURSEG				  Text	 _TEXT
+@DATA				  Text	 DGROUP
+@DATASIZE			  Text	 0
+@FILENAME			  Text	 101
+@INTERFACE			  Text	 000H
+@MODEL				  Text	 1
+@STACK				  Text	 DGROUP
+@WORDSIZE			  Text	 2
+CREATE_POINT			  Near	 DGROUP:0166
+DRAW_COLUMN			  Near	 DGROUP:0178
+HIGHT				  Word	 DGROUP:0004
+LEN				  Word	 DGROUP:0002
+START				  Near	 DGROUP:0100
+STD_STR				  Byte	 DGROUP:0189
+STRING				  Word	 DGROUP:0006
+SYMBOL				  Word	 DGROUP:0008
+X_CORD				  Byte	 DGROUP:0000
+Y_CORD				  Byte	 DGROUP:0001
+
+Groups & Segments		  Bit Size Align  Combine Class
+
+DGROUP				  Group
+  _DATA				  16  000A Word	  Public  DATA
+  _TEXT				  16  0195 Word	  Public  CODE
+

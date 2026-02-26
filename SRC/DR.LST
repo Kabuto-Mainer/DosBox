@@ -1,0 +1,558 @@
+Turbo Assembler	 Version 4.1	    02/23/26 23:28:48	    Page 1
+dr.asm
+
+
+
+      1	    0000			 .model	tiny
+      2					 .386
+      3					 Locals	@@
+      4
+      5		  =0020			 END_OF_INTER		 equ	 20h
+      6		  =000D			 AMOUNT_REGISTERS	 equ	 13
+      7
+      8		  =001D			 CONTROL_REG_SCAN_CODE	 equ	 29  ;tab - 15
+      9		  =00EA			 CODE_FAR_JUMP		 equ	 00eah
+     10
+     11		  =004C			 REGISTER_COLOR		 equ	 4ch
+     12		  =004A			 TABLE_COLOR		 equ	 4ah
+     13
+     14		  =C800			 START_MEMORY_SAVE_PLACE equ	 0b800h	+ 4096
+     15
+     16
+     17	    0000			 .code
+     18					 org 100h
+     19
+     20
+     21	    0100			 start:
+     22	    0100  0E				 push cs
+     23	    0101  07				 pop es
+     24	    0102  B8 0123r			 mov ax, offset	resident
+     25	    0105  B9 0001			 mov cx, 1
+     26	    0108  E8 02F1			 call replace_irq_address
+     27	    010B  A3 0154r			 mov word ptr standard_int_offset, ax
+     28	    010E  8C 06	0156r			 mov word ptr standard_int_segment, es
+     29
+     30						 ; call	resident
+     31
+     32	    0112  B8 3100			 mov ax, 3100h
+     33	    0115  BA 03FCr			 mov dx, offset	end_resident
+     34	    0118  C1 EA	04			 shr dx, 4
+     35	    011B  42				 inc dx
+     36	    011C  CD 21				 int 21h
+     37
+     38	    011E  B8 4C00			 mov ax, 4C00h
+     39	    0121  CD 21				 int 21h
+     40
+     41
+     42	    0123			 resident		 PROC
+     43	    0123  06				 push es
+     44	    0124  53				 push bx
+     45	    0125  57				 push di
+     46	    0126  BB B800			 mov bx, 0B800h
+     47	    0129  8E C3				 mov es, bx
+     48	    012B  BB 4C00			 mov bx, 4c00h
+     49	    012E  33 FF				 xor di, di
+     50	    0130  26: 89 1D			 mov es:[di], bx
+     51	    0133  5F				 pop di
+     52	    0134  5B				 pop bx
+     53	    0135  07				 pop es
+     54
+     55	    0136  50				 push ax
+     56	    0137  E8 01AA			 call get_signal
+     57	    013A  3D 0000			 cmp ax, 0
+Turbo Assembler	 Version 4.1	    02/23/26 23:28:48	    Page 2
+dr.asm
+
+
+
+     58	    013D  58				 pop ax
+     59						 ; je @@standard_int
+     60	    013E  EB 01	90			 jmp @@show_reg
+     61
+     62						 ; cmp ax, 1
+     63						 ; je @@show_reg
+     64
+     65
+     66	    0141			 @@show_reg:
+     67						 ; call	save_area
+     68	    0141  E8 01C7			 call fill_reg_data
+     69	    0144  50				 push ax
+     70	    0145  B8 B800			 mov ax, 0b800h
+     71	    0148  8E C0				 mov es, ax
+     72	    014A  33 FF				 xor di, di
+     73	    014C  B8 02CAr			 mov ax, offset	ALL_REGISTER_DATA
+     74	    014F  E8 0216			 call show_reg
+     75	    0152  58				 pop ax
+     76
+     77
+     78	    0153			 @@standard_int:
+     79	    0153  EA				 db CODE_FAR_JUMP
+     80	    0154  0000			 standard_int_offset	 dw	 0	 ;jmp to standard_int
+     81	    0156  0000			 standard_int_segment	 dw	 0
+     82						 ;ret after this is automatic
+     83
+     84
+     85	    0158						 ENDP
+     86
+     87
+     88					 ;data segment of resident
+     89	    0158  04*(4CDA 4CBF	4CC0  +	 TABLE_TANGLES	 dw   4	  dup(4cdah, 4cbfh, 4cc0h, 4cd9h)
+     90		  4CD9)
+     91	    0178  0D*(6178 6278	6378  +	 NAME_REGISTERS	 dw	 AMOUNT_REGISTERS	 dup('ax', 'bx', 'cx', 'dx', 'si', 'di',    +
+     92		  6478 7369 6469 6270 +	 'bp', 'sp', 'ds', 'es', 'ss', 'cs', 'ip')
+     93		  7370 6473 6573 7373 +
+     94		  6373 6970)
+     95	    02CA  0D*(????)		 ALL_REGISTER_DATA	 dw  AMOUNT_REGISTERS dup ()
+     96
+     97
+     98
+     99					 ;------------------------------------------------------------------------------
+    100					 ; get_signal
+    101					 ;
+    102					 ; Compare input scan code and return needed operation code
+    103					 ; 0 - nothing
+    104					 ; 1 - show registers
+    105					 ; 2 - hide registers
+    106					 ; Entry:
+    107					 ;	 -
+    108					 ; Return:
+    109					 ;	 ax - op. code
+    110					 ; Destroy:
+    111					 ;	 ax
+    112					 ;------------------------------------------------------------------------------
+    113	    02E4			 get_signal		 PROC
+    114	    02E4  E4 60				 in al,	60h
+Turbo Assembler	 Version 4.1	    02/23/26 23:28:48	    Page 3
+dr.asm
+
+
+
+    115	    02E6  3C 1D				 cmp al, CONTROL_REG_SCAN_CODE
+    116	    02E8  74 06	90 90			 je @@press
+    117	    02EC  B8 0000			 mov ax, 0
+    118	    02EF  C3				 ret
+    119
+    120	    02F0			 @@press:
+    121						 ; cmp active_flag, 0
+    122						 ; je @@show
+    123	    02F0  06				 push es
+    124	    02F1  53				 push bx
+    125	    02F2  57				 push di
+    126	    02F3  BB B800			 mov bx, 0B800h
+    127	    02F6  8E C3				 mov es, bx
+    128	    02F8  BB 4C00			 mov bx, 4c00h
+    129	    02FB  33 FF				 xor di, di
+    130	    02FD  26: 89 1D			 mov es:[di], bx
+    131	    0300  5F				 pop di
+    132	    0301  5B				 pop bx
+    133	    0302  07				 pop es
+    134	    0303  B8 0002			 mov ax, 2
+    135	    0306  C3				 ret
+    136
+    137	    0307			 @@show:
+    138	    0307  B8 0001			 mov ax, 1
+    139	    030A  C3				 ret
+    140	    030B						 ENDP
+    141
+    142					 ; save_area		   PROC
+    143					 ;
+    144					 ;
+    145					 ;
+    146					 ; ;			     ENDP
+    147	    030B			 fill_reg_data		 PROC
+    148	    030B  83 C4	02			 add sp, 2
+    149	    030E  2E: A3 02CAr			 mov cs:[ALL_REGISTER_DATA + 0], ax
+    150	    0312  2E: 89 1E 02CCr		 mov cs:[ALL_REGISTER_DATA + 2], bx
+    151	    0317  2E: 89 0E 02CEr		 mov cs:[ALL_REGISTER_DATA + 4], cx
+    152	    031C  2E: 89 16 02D0r		 mov cs:[ALL_REGISTER_DATA + 6], dx
+    153	    0321  2E: 89 36 02D2r		 mov cs:[ALL_REGISTER_DATA + 8], si
+    154	    0326  2E: 89 3E 02D4r		 mov cs:[ALL_REGISTER_DATA + 10], di
+    155	    032B  2E: 89 2E 02D6r		 mov cs:[ALL_REGISTER_DATA + 12], bp
+    156	    0330  83 C4	06			 add sp, 6
+    157	    0333  2E: 89 26 02D8r		 mov cs:[ALL_REGISTER_DATA + 14], sp
+    158	    0338  83 EC	06			 sub sp, 6
+    159						 ; mov [ALL_REGISTER_DATA + 7],	sp
+    160	    033B  2E: 8C 1E 02DAr		 mov cs:[ALL_REGISTER_DATA + 16], ds
+    161	    0340  2E: 8C 06 02DCr		 mov cs:[ALL_REGISTER_DATA + 18], es
+    162	    0345  2E: 8C 16 02DEr		 mov cs:[ALL_REGISTER_DATA + 20], ss
+    163	    034A  50 55				 push ax bp
+    164	    034C  8B EC				 mov bp, sp
+    165	    034E  83 ED	04			 sub bp, 4
+    166	    0351  8B 46	00			 mov ax, ss:[bp]
+    167	    0354  2E: A3 02E0r			 mov cs:[ALL_REGISTER_DATA + 22], ax
+    168						 ; mov [ALL_REGISTER_DATA + 11], cs
+    169	    0358  83 ED	02			 sub bp, 2
+    170	    035B  8B 46	00			 mov ax, ss:[bp]
+    171	    035E  2E: A3 02E2r			 mov cs:[ALL_REGISTER_DATA + 24], ax
+Turbo Assembler	 Version 4.1	    02/23/26 23:28:48	    Page 4
+dr.asm
+
+
+
+    172	    0362  5D 58				 pop bp	ax
+    173	    0364  83 EC	02			 sub sp, 2
+    174						 ; mov [ALL_REGISTER_DATA + 12], ip
+    175	    0367  C3				 ret
+    176	    0368						 ENDP
+    177
+    178
+    179					 ;------------------------------------------------------------------------------
+    180					 ; show_reg
+    181					 ;
+    182					 ; Draw	all resisterscs:
+    183					 ; Entry:
+    184					 ;	 ax - data with	values of registers
+    185					 ;	 es:[di] - start memory	address
+    186					 ;------------------------------------------------------------------------------
+    187	    0368			 show_reg		 PROC
+    188	    0368  51 53	56			 push cx bx si
+    189	    036B  B9 000D			 mov cx, AMOUNT_REGISTERS
+    190	    036E  B7 4C				 mov bh, REGISTER_COLOR
+    191	    0370  33 F6				 xor si, si
+    192
+    193	    0372			 @@next:
+    194	    0372  57				 push di
+    195	    0373  50				 push ax
+    196	    0374  2E: 8B 84 0178r		 mov ax, word ptr cs:NAME_REGISTERS[si]
+    197	    0379  26: 89 05			 mov es:[di], ax
+    198	    037C  58				 pop ax
+    199	    037D  46				 inc si
+    200	    037E  46				 inc si
+    201	    037F  83 C7	02			 add di, 2
+    202
+    203	    0382  57				 push di
+    204	    0383  8B F8				 mov di, ax
+    205	    0385  2E: 8A 1D			 mov bl, byte ptr cs:[di]
+    206	    0388  5F				 pop di
+    207	    0389  26: 89 1D			 mov word ptr es:[di], bx
+    208
+    209	    038C  40				 inc ax
+    210	    038D  83 C7	02			 add di, 2
+    211
+    212	    0390  57				 push di
+    213	    0391  8B F8				 mov di, ax
+    214	    0393  2E: 8A 1D			 mov bl, byte ptr cs:[di]
+    215	    0396  5F				 pop di
+    216	    0397  26: 89 1D			 mov word ptr es:[di], bx
+    217	    039A  40				 inc ax
+    218	    039B  5F				 pop di
+    219	    039C  81 C7	00A0			 add di, 160
+    220	    03A0  E2 D0				 loop @@next
+    221
+    222	    03A2  5E 5B	59			 pop si	bx cx
+    223	    03A5  C3				 ret
+    224	    03A6						 ENDP
+    225
+    226
+    227
+    228					 ;------------------------------------------------------------------------------
+Turbo Assembler	 Version 4.1	    02/23/26 23:28:48	    Page 5
+dr.asm
+
+
+
+    229					 ; draw_column
+    230					 ;
+    231					 ; Draw	Column with symbol `ax`
+    232					 ; Entry:
+    233					 ;	 ax - symbol (word: attr<<8 | char)
+    234					 ;	 es:[di] - start memory	address
+    235					 ;	 cx - len column
+    236					 ; Return:
+    237					 ;	 -
+    238					 ; Destroy:
+    239					 ;	 bx, di, cx
+    240					 ;------------------------------------------------------------------------------
+    241	    03A6			 draw_column PROC
+    242	    03A6			 @@next:
+    243	    03A6  BB 00A0		     mov bx, 160
+    244	    03A9  03 FB			     add di, bx
+    245	    03AB  26: 89 05		     mov word ptr es:[di], ax
+    246	    03AE  E2 F6			     loop @@next
+    247	    03B0  C3			     ret
+    248	    03B1			 draw_column ENDP
+    249
+    250					 ;------------------------------------------------------------------------------
+    251					 ; draw_line
+    252					 ;
+    253					 ; Draw	line by	`ax`
+    254					 ; Entry:
+    255					 ;	 ax - symbol (word: attr<<8 | char)
+    256					 ;	 cx - len (count of WORDs)
+    257					 ;	 es:[di] - start video memory
+    258					 ; Return:
+    259					 ;	 -
+    260					 ; Destroy:
+    261					 ;	 cx, di
+    262					 ;------------------------------------------------------------------------------
+    263	    03B1			 draw_line PROC
+    264	    03B1  F3> AB		     rep stosw
+    265	    03B3  C3			     ret
+    266	    03B4			 draw_line ENDP
+    267
+    268					 ;------------------------------------------------------------------------------
+    269					 ; fill_fon
+    270					 ;
+    271					 ; Fill	fon of place
+    272					 ; Entry:
+    273					 ;	 ax - symbol (word: attr<<8 | char)
+    274					 ;	 bx - hight
+    275					 ;	 cx - len
+    276					 ;	 es:[di] - start memory	address
+    277					 ; Return:
+    278					 ;	 -
+    279					 ; Destroy:
+    280					 ;	 bx, cx, di
+    281					 ;------------------------------------------------------------------------------
+    282	    03B4			 fill_fon PROC
+    283	    03B4			 @@next:
+    284	    03B4  87 D9			     xchg bx, cx
+    285	    03B6  57			     push di
+Turbo Assembler	 Version 4.1	    02/23/26 23:28:48	    Page 6
+dr.asm
+
+
+
+    286	    03B7  51			     push cx
+    287	    03B8  F3> AB		     rep stosw
+    288	    03BA  59			     pop cx
+    289	    03BB  5F			     pop di
+    290	    03BC  81 C7	00A0		     add di, 160
+    291	    03C0  87 D9			     xchg bx, cx
+    292	    03C2  E2 F0			     loop @@next
+    293	    03C4  C3			     ret
+    294	    03C5			 fill_fon ENDP
+    295
+    296					 ;------------------------------------------------------------------------------
+    297					 ; draw_tangles
+    298					 ;
+    299					 ; Draw	Tangles	with symbols in	massive, whose address in ax
+    300					 ; Entry:
+    301					 ;	 ax - massive of symbol
+    302					 ;	 es:[di] - start memory	address	 ;lh, rh, ld, rd
+    303					 ;	 bx - high table
+    304					 ;	 cx - len table
+    305					 ; Return:
+    306					 ;	 -
+    307					 ; Destroy:
+    308					 ;	 bx, di, cx
+    309					 ;------------------------------------------------------------------------------
+    310	    03C5			 draw_tangles PROC
+    311	    03C5  41			     inc cx
+    312	    03C6  D1 E1			     shl cx, 1
+    313	    03C8  50			     push ax
+    314	    03C9  B8 00A0		     mov ax, 160
+    315	    03CC  FE C3			     inc bl
+    316	    03CE  F6 E3			     mul bl
+    317	    03D0  8B D8			     mov bx, ax
+    318	    03D2  58			     pop ax
+    319
+    320	    03D3  55			     push bp
+    321	    03D4  56			     push si
+    322
+    323	    03D5  8B E8			     mov bp, ax
+    324	    03D7  2E: 8B 76 00		     mov si, cs:[bp]
+    325	    03DB  26: 89 35		     mov es:[di], si
+    326
+    327	    03DE  57			     push di
+    328	    03DF  03 F9			     add di, cx
+    329	    03E1  2E: 8B 76 02		     mov si, cs:[bp+2]
+    330	    03E5  26: 89 35		     mov es:[di], si
+    331
+    332	    03E8  5F			     pop di
+    333	    03E9  03 FB			     add di, bx
+    334	    03EB  2E: 8B 76 04		     mov si, cs:[bp+4]
+    335	    03EF  26: 89 35		     mov es:[di], si
+    336
+    337	    03F2  03 F9			     add di, cx
+    338	    03F4  2E: 8B 76 06		     mov si, cs:[bp+6]
+    339	    03F8  26: 89 35		     mov es:[di], si
+    340
+    341	    03FB  C3			     ret
+    342
+Turbo Assembler	 Version 4.1	    02/23/26 23:28:48	    Page 7
+dr.asm
+
+
+
+    343	    03FC				     ENDP
+    344
+    345
+    346	    03FC			 end_resident:
+    347
+    348
+    349					 ;------------------------------------------------------------------------------
+    350					 ; replace_irq_address
+    351					 ;
+    352					 ; Entry:
+    353					 ;	 ax - new offset of irq
+    354					 ;	 es - new segment of irq
+    355					 ;	 cx - number interrupt
+    356					 ; Return:
+    357					 ;	 ax - old offset of irq
+    358					 ;	 es - old segment of irq
+    359					 ; Destroy:
+    360					 ;	 -
+    361					 ;------------------------------------------------------------------------------
+    362	    03FC			 replace_irq_address	 PROC
+    363	    03FC  57 52	53 51			 push di dx bx cx
+    364
+    365	    0400  BF 0008			 mov di, 8
+    366	    0403  03 F9				 add di, cx
+    367	    0405  C1 E7	02			 shl di, 2
+    368
+    369	    0408  06				 push es
+    370	    0409  59				 pop cx
+    371
+    372	    040A  52				 push dx
+    373	    040B  BA 0000			 mov dx, 0
+    374	    040E  07				 pop es
+    375	    040F  26: 8B 1D			 mov bx, es:[di]
+    376	    0412  26: 8B 55 02			 mov dx, es:[di	+ 2]
+    377
+    378	    0416  FA				 cli
+    379	    0417  26: 89 05			 mov es:[di], ax
+    380	    041A  26: 89 4D 02			 mov es:[di + 2], cx
+    381	    041E  FB				 sti
+    382
+    383	    041F  8B C3				 mov ax, bx
+    384	    0421  52				 push dx
+    385	    0422  07				 pop es
+    386
+    387	    0423  59 5B	5A 5F			 pop cx	bx dx di
+    388	    0427  C3				 ret
+    389	    0428						 ENDP
+    390
+    391
+    392
+    393					 ;------------------------------------------------------------------------------
+    394					 ; number_to_ascii_16
+    395					 ;
+    396					 ; Convert value in register to	needed ascii code in 16	- system
+    397					 ; Entry:
+    398					 ;	 al - value
+    399					 ; Return:
+Turbo Assembler	 Version 4.1	    02/23/26 23:28:48	    Page 8
+dr.asm
+
+
+
+    400					 ;	 ax - number (needed 2 byte)
+    401					 ; Destroy:
+    402					 ;	 ah
+    403					 ;------------------------------------------------------------------------------
+    404	    0428			 number_to_ascii_16	 PROC
+    405	    0428  53				 push bx
+    406	    0429  50				 push ax
+    407	    042A  24 0F				 and al, 0Fh
+    408
+    409	    042C  3C 0A				 cmp al, 10
+    410	    042E  77 05	90 90			 ja @@less_1
+    411	    0432  EB 06	90			 jmp @@bigger_1
+    412
+    413	    0435			 @@less_1:
+    414	    0435  04 30				 add al, '0'
+    415	    0437  EB 05	90			 jmp @@high_side
+    416
+    417	    043A			 @@bigger_1:
+    418	    043A  2C 0A				 sub al, 10
+    419	    043C  04 41				 add al, 'A'
+    420						 ; jmp @@high_side - skip
+    421
+    422	    043E			 @@high_side:
+    423	    043E  8A D8				 mov bl, al
+    424	    0440  58				 pop ax
+    425	    0441  24 F0				 and al, 0F0h
+    426	    0443  3C 19				 cmp al, 10 + 0Fh
+    427	    0445  77 05	90 90			 ja @@less_2
+    428	    0449  EB 06	90			 jmp @@bigger_2
+    429
+    430	    044C			 @@less_2:
+    431	    044C  04 3F				 add al, '0' + 0Fh
+    432	    044E  EB 05	90			 jmp @@end
+    433
+    434	    0451			 @@bigger_2:
+    435	    0451  2C 19				 sub al, 10 + 0Fh
+    436	    0453  04 50				 add al, 'A' + 0Fh
+    437						 ; jmp - skip
+    438
+    439	    0455			 @@end:
+    440	    0455  8A F8				 mov bh, al
+    441	    0457  8B C3				 mov ax, bx
+    442	    0459  5B				 pop bx
+    443	    045A  C3				 ret
+    444	    045B						 ENDP
+    445					 end	   start
+Turbo Assembler	 Version 4.1	    02/23/26 23:28:48	    Page 9
+Symbol Table
+
+
+
+
+Symbol Name			  Type	 Value
+
+??DATE				  Text	 "02/23/26"
+??FILENAME			  Text	 "dr	  "
+??TIME				  Text	 "23:28:48"
+??VERSION			  Number 040A
+@32BIT				  Text	 0
+@@BIGGER_1			  Near	 DGROUP:043A
+@@BIGGER_2			  Near	 DGROUP:0451
+@@END				  Near	 DGROUP:0455
+@@HIGH_SIDE			  Near	 DGROUP:043E
+@@LESS_1			  Near	 DGROUP:0435
+@@LESS_2			  Near	 DGROUP:044C
+@@NEXT				  Near	 DGROUP:0372
+@@NEXT				  Near	 DGROUP:03A6
+@@NEXT				  Near	 DGROUP:03B4
+@@PRESS				  Near	 DGROUP:02F0
+@@SHOW				  Near	 DGROUP:0307
+@@SHOW_REG			  Near	 DGROUP:0141
+@@STANDARD_INT			  Near	 DGROUP:0153
+@CODE				  Text	 DGROUP
+@CODESIZE			  Text	 0
+@CPU				  Text	 0F0FH
+@CURSEG				  Text	 _TEXT
+@DATA				  Text	 DGROUP
+@DATASIZE			  Text	 0
+@FILENAME			  Text	 DR
+@INTERFACE			  Text	 000H
+@MODEL				  Text	 1
+@STACK				  Text	 DGROUP
+@WORDSIZE			  Text	 2
+ALL_REGISTER_DATA		  Word	 DGROUP:02CA
+AMOUNT_REGISTERS		  Number 000D
+CODE_FAR_JUMP			  Number 00EA
+CONTROL_REG_SCAN_CODE		  Number 001D
+DRAW_COLUMN			  Near	 DGROUP:03A6
+DRAW_LINE			  Near	 DGROUP:03B1
+DRAW_TANGLES			  Near	 DGROUP:03C5
+END_OF_INTER			  Number 0020
+END_RESIDENT			  Near	 DGROUP:03FC
+FILL_FON			  Near	 DGROUP:03B4
+FILL_REG_DATA			  Near	 DGROUP:030B
+GET_SIGNAL			  Near	 DGROUP:02E4
+NAME_REGISTERS			  Word	 DGROUP:0178
+NUMBER_TO_ASCII_16		  Near	 DGROUP:0428
+REGISTER_COLOR			  Number 004C
+REPLACE_IRQ_ADDRESS		  Near	 DGROUP:03FC
+RESIDENT			  Near	 DGROUP:0123
+SHOW_REG			  Near	 DGROUP:0368
+STANDARD_INT_OFFSET		  Word	 DGROUP:0154
+STANDARD_INT_SEGMENT		  Word	 DGROUP:0156
+START				  Near	 DGROUP:0100
+START_MEMORY_SAVE_PLACE		  Number C800
+TABLE_COLOR			  Number 004A
+TABLE_TANGLES			  Word	 DGROUP:0158
+Turbo Assembler	 Version 4.1	    02/23/26 23:28:48	    Page 10
+Symbol Table
+
+
+
+
+Groups & Segments		  Bit Size Align  Combine Class
+
+DGROUP				  Group
+  _DATA				  16  0000 Word	  Public  DATA
+  _TEXT				  16  045B Word	  Public  CODE
+

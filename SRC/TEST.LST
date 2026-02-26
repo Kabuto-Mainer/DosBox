@@ -1,0 +1,465 @@
+Turbo Assembler	 Version 4.1	    02/23/26 20:10:59	    Page 1
+test.asm
+
+
+
+      1	0000			     .model tiny
+      2	0000			     .code
+      3				     org 100h
+      4
+      5	0100			     start:
+      6	0100  50			     push ax
+      7	0101  EA FF FF			     db	00eah, 00FFh, 00FFh
+      8	0104  90			     nop
+      9	0105  90			     nop
+     10	0106  90			     nop
+     11	0107  90			     nop
+     12	0108  90			     nop
+     13	0109  90			     nop
+     14	010A  90			     nop
+     15	010B  90			     nop
+     16	010C  90			     nop
+     17	010D  90			     nop
+     18	010E  90			     nop
+     19	010F  90				     nop
+     20	0110  90			     nop
+     21	0111  90			     nop
+     22	0112  90			     nop
+     23	0113  90			     nop
+     24	0114  90			     nop
+     25	0115  90			     nop
+     26	0116  90			     nop
+     27	0117  90			     nop
+     28	0118  90			     nop
+     29	0119  90			     nop
+     30	011A  90				     nop
+     31	011B  90			     nop
+     32	011C  90			     nop
+     33	011D  90			     nop
+     34	011E  90			     nop
+     35	011F  90			     nop
+     36	0120  90			     nop
+     37	0121  90			     nop
+     38	0122  90			     nop
+     39	0123  90			     nop
+     40	0124  90			     nop
+     41	0125  90				     nop
+     42	0126  90			     nop
+     43	0127  90			     nop
+     44	0128  90			     nop
+     45	0129  90			     nop
+     46	012A  90			     nop
+     47	012B  90			     nop
+     48	012C  90			     nop
+     49	012D  90			     nop
+     50	012E  90			     nop
+     51	012F  90			     nop
+     52	0130  90				     nop
+     53	0131  90			     nop
+     54	0132  90			     nop
+     55	0133  90			     nop
+     56	0134  90			     nop
+     57	0135  90			     nop
+Turbo Assembler	 Version 4.1	    02/23/26 20:10:59	    Page 2
+test.asm
+
+
+
+     58	0136  90			     nop
+     59	0137  90			     nop
+     60	0138  90			     nop
+     61	0139  90			     nop
+     62	013A  90			     nop
+     63	013B  90				     nop
+     64	013C  90			     nop
+     65	013D  90			     nop
+     66	013E  90			     nop
+     67	013F  90			     nop
+     68	0140  90			     nop
+     69	0141  90			     nop
+     70	0142  90			     nop
+     71	0143  90			     nop
+     72	0144  90			     nop
+     73	0145  90			     nop
+     74	0146  90				     nop
+     75	0147  90			     nop
+     76	0148  90			     nop
+     77	0149  90			     nop
+     78	014A  90			     nop
+     79	014B  90			     nop
+     80	014C  90			     nop
+     81	014D  90			     nop
+     82	014E  90			     nop
+     83	014F  90			     nop
+     84	0150  90			     nop
+     85	0151  90				     nop
+     86	0152  90			     nop
+     87	0153  90			     nop
+     88	0154  90			     nop
+     89	0155  90			     nop
+     90	0156  90			     nop
+     91	0157  90			     nop
+     92	0158  90			     nop
+     93	0159  90			     nop
+     94	015A  90			     nop
+     95	015B  90			     nop
+     96	015C  90				     nop
+     97	015D  90			     nop
+     98	015E  90			     nop
+     99	015F  90			     nop
+    100	0160  90			     nop
+    101	0161  90			     nop
+    102	0162  90			     nop
+    103	0163  90			     nop
+    104	0164  90			     nop
+    105	0165  90			     nop
+    106	0166  90			     nop
+    107	0167  90				     nop
+    108	0168  90			     nop
+    109	0169  90			     nop
+    110	016A  90			     nop
+    111	016B  90			     nop
+    112	016C  90			     nop
+    113	016D  90			     nop
+    114	016E  90			     nop
+Turbo Assembler	 Version 4.1	    02/23/26 20:10:59	    Page 3
+test.asm
+
+
+
+    115	016F  90			     nop
+    116	0170  90			     nop
+    117	0171  90			     nop
+    118	0172  90				     nop
+    119	0173  90			     nop
+    120	0174  90			     nop
+    121	0175  90			     nop
+    122	0176  90			     nop
+    123	0177  90			     nop
+    124	0178  90			     nop
+    125	0179  90			     nop
+    126	017A  90			     nop
+    127	017B  90			     nop
+    128	017C  90			     nop
+    129	017D  90				     nop
+    130	017E  90			     nop
+    131	017F  90			     nop
+    132	0180  90			     nop
+    133	0181  90			     nop
+    134	0182  90			     nop
+    135	0183  90			     nop
+    136	0184  90			     nop
+    137	0185  90			     nop
+    138	0186  90			     nop
+    139	0187  90			     nop
+    140	0188  90				     nop
+    141	0189  90			     nop
+    142	018A  90			     nop
+    143	018B  90			     nop
+    144	018C  90			     nop
+    145	018D  90			     nop
+    146	018E  90			     nop
+    147	018F  90			     nop
+    148	0190  90			     nop
+    149	0191  90			     nop
+    150	0192  90			     nop
+    151	0193  90				     nop
+    152	0194  90			     nop
+    153	0195  90			     nop
+    154	0196  90			     nop
+    155	0197  90			     nop
+    156	0198  90			     nop
+    157	0199  90			     nop
+    158	019A  90			     nop
+    159	019B  90			     nop
+    160	019C  90			     nop
+    161	019D  90			     nop
+    162	019E  90				     nop
+    163	019F  90			     nop
+    164	01A0  90			     nop
+    165	01A1  90			     nop
+    166	01A2  90			     nop
+    167	01A3  90			     nop
+    168	01A4  90			     nop
+    169	01A5  90			     nop
+    170	01A6  90			     nop
+    171	01A7  90			     nop
+Turbo Assembler	 Version 4.1	    02/23/26 20:10:59	    Page 4
+test.asm
+
+
+
+    172	01A8  90			     nop
+    173	01A9  90				     nop
+    174	01AA  90			     nop
+    175	01AB  90			     nop
+    176	01AC  90			     nop
+    177	01AD  90			     nop
+    178	01AE  90			     nop
+    179	01AF  90			     nop
+    180	01B0  90			     nop
+    181	01B1  90			     nop
+    182	01B2  90			     nop
+    183	01B3  90			     nop
+    184	01B4  90				     nop
+    185	01B5  90			     nop
+    186	01B6  90			     nop
+    187	01B7  90			     nop
+    188	01B8  90			     nop
+    189	01B9  90			     nop
+    190	01BA  90			     nop
+    191	01BB  90			     nop
+    192	01BC  90			     nop
+    193	01BD  90			     nop
+    194	01BE  90			     nop
+    195	01BF  90				     nop
+    196	01C0  90			     nop
+    197	01C1  90			     nop
+    198	01C2  90			     nop
+    199	01C3  90			     nop
+    200	01C4  90			     nop
+    201	01C5  90			     nop
+    202	01C6  90			     nop
+    203	01C7  90			     nop
+    204	01C8  90			     nop
+    205	01C9  90			     nop
+    206	01CA  90				     nop
+    207	01CB  90			     nop
+    208	01CC  90			     nop
+    209	01CD  90			     nop
+    210	01CE  90			     nop
+    211	01CF  90			     nop
+    212	01D0  90			     nop
+    213	01D1  90			     nop
+    214	01D2  90			     nop
+    215	01D3  90			     nop
+    216	01D4  90			     nop
+    217	01D5  90				     nop
+    218	01D6  90			     nop
+    219	01D7  90			     nop
+    220	01D8  90			     nop
+    221	01D9  90			     nop
+    222	01DA  90			     nop
+    223	01DB  90			     nop
+    224	01DC  90			     nop
+    225	01DD  90			     nop
+    226	01DE  90			     nop
+    227	01DF  90			     nop
+    228	01E0  90				     nop
+Turbo Assembler	 Version 4.1	    02/23/26 20:10:59	    Page 5
+test.asm
+
+
+
+    229	01E1  90			     nop
+    230	01E2  90			     nop
+    231	01E3  90			     nop
+    232	01E4  90			     nop
+    233	01E5  90			     nop
+    234	01E6  90			     nop
+    235	01E7  90			     nop
+    236	01E8  90			     nop
+    237	01E9  90			     nop
+    238	01EA  90			     nop
+    239	01EB  90				     nop
+    240	01EC  90			     nop
+    241	01ED  90			     nop
+    242	01EE  90			     nop
+    243	01EF  90			     nop
+    244	01F0  90			     nop
+    245	01F1  90			     nop
+    246	01F2  90			     nop
+    247	01F3  90			     nop
+    248	01F4  90			     nop
+    249	01F5  90			     nop
+    250	01F6  90				     nop
+    251	01F7  90			     nop
+    252	01F8  90			     nop
+    253	01F9  90			     nop
+    254	01FA  90			     nop
+    255	01FB  90			     nop
+    256	01FC  90			     nop
+    257	01FD  90			     nop
+    258	01FE  90			     nop
+    259	01FF  90			     nop
+    260	0200  90			     nop
+    261	0201  90				     nop
+    262	0202  90			     nop
+    263	0203  90			     nop
+    264	0204  90			     nop
+    265	0205  90			     nop
+    266	0206  90			     nop
+    267	0207  90			     nop
+    268	0208  90			     nop
+    269	0209  90			     nop
+    270	020A  90			     nop
+    271	020B  90			     nop
+    272	020C  90				     nop
+    273	020D  90			     nop
+    274	020E  90			     nop
+    275	020F  90			     nop
+    276	0210  90			     nop
+    277	0211  90			     nop
+    278	0212  90			     nop
+    279	0213  90			     nop
+    280	0214  90			     nop
+    281	0215  90			     nop
+    282	0216  90			     nop
+    283	0217  90				     nop
+    284	0218  90			     nop
+    285	0219  90			     nop
+Turbo Assembler	 Version 4.1	    02/23/26 20:10:59	    Page 6
+test.asm
+
+
+
+    286	021A  90			     nop
+    287	021B  90			     nop
+    288	021C  90			     nop
+    289	021D  90			     nop
+    290	021E  90			     nop
+    291	021F  90			     nop
+    292	0220  90			     nop
+    293	0221  90			     nop
+    294	0222  90				     nop
+    295	0223  90			     nop
+    296	0224  90			     nop
+    297	0225  90			     nop
+    298	0226  90			     nop
+    299	0227  90			     nop
+    300	0228  90			     nop
+    301	0229  90			     nop
+    302	022A  90			     nop
+    303	022B  90			     nop
+    304	022C  90			     nop
+    305	022D  90				     nop
+    306	022E  90			     nop
+    307	022F  90			     nop
+    308	0230  90			     nop
+    309	0231  90			     nop
+    310	0232  90			     nop
+    311	0233  90			     nop
+    312	0234  90			     nop
+    313	0235  90			     nop
+    314	0236  90			     nop
+    315	0237  90			     nop
+    316
+    317	0238  90				     nop
+    318	0239  90			     nop
+    319	023A  90			     nop
+    320	023B  90			     nop
+    321	023C  90			     nop
+    322	023D  90			     nop
+    323	023E  90			     nop
+    324	023F  90			     nop
+    325	0240  90			     nop
+    326	0241  90			     nop
+    327	0242  90			     nop
+    328	0243  90				     nop
+    329	0244  90			     nop
+    330	0245  90			     nop
+    331	0246  90			     nop
+    332	0247  90			     nop
+    333	0248  90			     nop
+    334	0249  90			     nop
+    335	024A  90			     nop
+    336	024B  90			     nop
+    337	024C  90			     nop
+    338	024D  90			     nop
+    339	024E  90				     nop
+    340	024F  90			     nop
+    341	0250  90			     nop
+    342	0251  90			     nop
+Turbo Assembler	 Version 4.1	    02/23/26 20:10:59	    Page 7
+test.asm
+
+
+
+    343	0252  90			     nop
+    344	0253  90			     nop
+    345	0254  90			     nop
+    346	0255  90			     nop
+    347	0256  90			     nop
+    348	0257  90			     nop
+    349	0258  90			     nop
+    350	0259  90				     nop
+    351	025A  90			     nop
+    352	025B  90			     nop
+    353	025C  90			     nop
+    354	025D  90			     nop
+    355	025E  90			     nop
+    356	025F  90			     nop
+    357	0260  90			     nop
+    358	0261  90			     nop
+    359	0262  90			     nop
+    360	0263  90			     nop
+    361	0264  90				     nop
+    362	0265  90			     nop
+    363	0266  90			     nop
+    364	0267  90			     nop
+    365	0268  90			     nop
+    366	0269  90			     nop
+    367	026A  90			     nop
+    368	026B  90			     nop
+    369	026C  90			     nop
+    370	026D  90			     nop
+    371	026E  90			     nop
+    372	026F  90				     nop
+    373	0270  90			     nop
+    374	0271  90			     nop
+    375	0272  90			     nop
+    376	0273  90			     nop
+    377	0274  90			     nop
+    378	0275  90			     nop
+    379	0276  90			     nop
+    380	0277  90			     nop
+    381	0278  90			     nop
+    382	0279  90			     nop
+    383	027A  90				     nop
+    384	027B  90			     nop
+    385	027C  90			     nop
+    386	027D  90			     nop
+    387	027E  90			     nop
+    388	027F  90			     nop
+    389	0280  90			     nop
+    390	0281  90			     nop
+    391	0282  90			     nop
+    392	0283  90			     nop
+    393	0284  90			     nop
+    394
+    395	0285			     end_1:
+    396	0285  53			     push bx
+    397				     end     start
+Turbo Assembler	 Version 4.1	    02/23/26 20:10:59	    Page 8
+Symbol Table
+
+
+
+
+Symbol Name			  Type	 Value
+
+??DATE				  Text	 "02/23/26"
+??FILENAME			  Text	 "test	  "
+??TIME				  Text	 "20:10:59"
+??VERSION			  Number 040A
+@32BIT				  Text	 0
+@CODE				  Text	 DGROUP
+@CODESIZE			  Text	 0
+@CPU				  Text	 0101H
+@CURSEG				  Text	 _TEXT
+@DATA				  Text	 DGROUP
+@DATASIZE			  Text	 0
+@FILENAME			  Text	 TEST
+@INTERFACE			  Text	 000H
+@MODEL				  Text	 1
+@STACK				  Text	 DGROUP
+@WORDSIZE			  Text	 2
+END_1				  Near	 DGROUP:0285
+START				  Near	 DGROUP:0100
+
+Groups & Segments		  Bit Size Align  Combine Class
+
+DGROUP				  Group
+  _DATA				  16  0000 Word	  Public  DATA
+  _TEXT				  16  0286 Word	  Public  CODE
+

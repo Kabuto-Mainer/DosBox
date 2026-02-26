@@ -1,0 +1,738 @@
+Turbo Assembler	 Version 4.1	    02/25/26 22:05:08	    Page 1
+102.asm
+
+
+
+      1	0000			     .model tiny
+      2
+      3				     ;==============================================================================
+      4				     ; DATA SEGMENT
+      5				     ;==============================================================================
+      6
+      7	0000			     dataseg
+      8					 ;Coordinates
+      9	0000  000A			 X_cord	     dw	 10
+     10	0002  000A			 Y_cord	     dw	 10
+     11
+     12					 ;Params
+     13	0004  0000			 Len	     dw	 0
+     14	0006  0000			 Hight	     dw	 0
+     15
+     16					 ;Buffer for save values
+     17	0008  0000			 Buffer	     dw	 0
+     18
+     19					 ;Symbols	       Line    Column  Fon     Mask Text
+     20	000A  04*(4CC4 4CB3 4C03  +	 Chars	     dw	 4 dup (4CC4h, 4CB3h,  4C03h,  4C00h)
+     21	      4C00)
+     22
+     23					 ; Corners (tangles)
+     24	002A  04*(4CDA 4CBF 4CC0  +	 Tangles     dw	 4 dup (4CDAh, 4CBFh,  4CC0h,  4CD9h)
+     25	      4CD9)
+     26
+     27	004A			     .code
+     28
+     29	      =0024		     Null_Char	 equ '$'
+     30	      =002D		     Flag_Char	 equ '-'
+     31				     Locals @@
+     32				     org 100h
+     33
+     34				     ;==============================================================================
+     35				     ; CODE
+     36				     ;==============================================================================
+     37
+     38				     ;------------------------------------------------------------------------------
+     39				     ; draw_line
+     40				     ;
+     41				     ; Draw line by `ax`
+     42				     ; Entry:
+     43				     ;	     ax	- symbol (word:	attr<<8	| char)
+     44				     ;	     cx	- len (count of	WORDs)
+     45				     ;	     es:[di] - start video memory
+     46				     ; Return:
+     47				     ;	     -
+     48				     ; Destroy:
+     49				     ;	     cx, di
+     50				     ;------------------------------------------------------------------------------
+     51				     draw_line	 MACRO	    ;marcoc
+     52					 rep stosw
+     53						 ENDM
+     54
+     55				     ;========================================	START  ================================
+     56	0100			     start:
+     57	0100  FC			 cld			     ; set track
+Turbo Assembler	 Version 4.1	    02/25/26 22:05:08	    Page 2
+102.asm
+
+
+
+     58
+     59					 ; -------------------------------------------------------------------------
+     60					 ; Prepare for parsing command tail
+     61					 ; -------------------------------------------------------------------------
+     62	0101  33 D2			 xor dx, dx
+     63	0103  BB 0080			 mov bx, 80h
+     64	0106  8A 17			 mov dl, [bx]
+     65	0108  81 C2 0081		 add dx, 81h
+     66	010C  B0 24			 mov al, Null_Char
+     67
+     68	010E  0E			 push cs
+     69	010F  07			 pop  es
+     70	0110  BF 0081			 mov di, 81h
+     71
+     72	0113  E8 00EE			 call ctr_dt_text
+     73
+     74					 ; -------------------------------------------------------------------------
+     75					 ; Init	video memory segment
+     76					 ; -------------------------------------------------------------------------
+     77	0116  B9 B800			 mov cx, 0B800h
+     78	0119  8E C1			 mov es, cx
+     79
+     80				     ;--------------------------------------------------------------------------------
+     81
+     82	011B  53			 push bx
+     83
+     84				     ;--------------------------------------------------------------------------------
+     85				     ; Find left high tangle
+     86				     ;--------------------------------------------------------------------------------
+     87	011C  33 D2			 xor dx, dx
+     88
+     89	011E  A1 0002r			 mov ax, Y_cord
+     90	0121  B3 A0			 mov bl, 160
+     91	0123  F6 E3			 mul bl
+     92	0125  03 D0			 add dx, ax
+     93
+     94	0127  A1 0000r			 mov ax, X_cord
+     95	012A  B3 02			 mov bl, 2
+     96	012C  F6 E3			 mul bl
+     97	012E  03 D0			 add dx, ax
+     98
+     99				     ;--------------------------------------------------------------------------------
+    100				     ; Save amount strings in command line
+    101				     ;--------------------------------------------------------------------------------
+    102	0130  59			 pop cx
+    103	0131  89 0E 0008r		 mov [Buffer], cx
+    104
+    105				     ;--------------------------------------------------------------------------------
+    106				     ; Fill background
+    107				     ; Entry for fill_fon (as used here):
+    108				     ;	 ax = symbol
+    109				     ;	 cx = Hight
+    110				     ;	 bx = Len
+    111				     ;	 es:di = start address
+    112				     ;--------------------------------------------------------------------------------
+    113	0135  A1 000Er			 mov ax, [Chars+4]
+    114	0138  8B 0E 0006r		 mov cx, Hight
+Turbo Assembler	 Version 4.1	    02/25/26 22:05:08	    Page 3
+102.asm
+
+
+
+    115	013C  8B 1E 0004r		 mov bx, Len
+    116	0140  8B FA			 mov di, dx
+    117	0142  E8 0094			 call fill_fon
+    118
+    119				     ;--------------------------------------------------------------------------------
+    120				     ; Print parsed lines
+    121				     ; prt_dt_text uses:
+    122				     ;	 dx = left high	tangle
+    123				     ;	 cx = amount strings
+    124				     ;--------------------------------------------------------------------------------
+    125	0145  8B 0E 0008r		 mov cx, [Buffer]
+    126	0149  89 16 0008r		 mov [Buffer], dx	     ; need to be saved
+    127	014D  E8 0194			 call prt_dt_text
+    128
+    129	0150  8B 16 0008r		 mov dx, [Buffer]
+    130
+    131				     ;--------------------------------------------------------------------------------
+    132				     ; Draw lines
+    133				     ;--------------------------------------------------------------------------------
+    134	0154  A1 000Ar			 mov ax, [Chars+0]	      ;	line symbol
+    135	0157  8B 0E 0004r		 mov cx, Len
+    136	015B  51			 push cx
+    137	015C  8B FA			 mov di, dx
+    138	015E  57			 push di
+    139
+    140					 draw_line
+1   141	015F  F3> AB			 rep stosw
+    142	0161  8B DF			 mov bx, di
+    143
+    144	0163  5F			 pop di
+    145	0164  59			 pop cx
+    146	0165  53			 push bx		      ;	we need	to save	it
+    147
+    148	0166  8B 1E 0006r		 mov bx, Hight
+    149	016A  50			 push ax
+    150	016B  B8 00A0			 mov ax, 160
+    151	016E  F6 E3			 mul bl
+    152	0170  03 F8			 add di, ax
+    153	0172  58			 pop ax
+    154
+    155					 draw_line
+1   156	0173  F3> AB			 rep stosw
+    157
+    158	0175  A1 000Cr			 mov ax, [Chars+2]	      ;	column symbol
+    159	0178  8B FA			 mov di, dx
+    160	017A  8B 0E 0006r		 mov cx, Hight
+    161	017E  E8 004D			 call draw_column
+    162
+    163	0181  5F			 pop di
+    164	0182  83 EF 02			 sub di, 2
+    165	0185  57			 push di
+    166
+    167	0186  8B 0E 0006r		 mov cx, Hight
+    168	018A  E8 0041			 call draw_column
+    169
+    170				     ;--------------------------------------------------------------------------------
+    171				     ; Set tangles
+Turbo Assembler	 Version 4.1	    02/25/26 22:05:08	    Page 4
+102.asm
+
+
+
+    172				     ;--------------------------------------------------------------------------------
+    173	018D  8B FA			 mov di, dx
+    174	018F  A1 002Ar			 mov ax, [Tangles+0]
+    175	0192  26: 89 05			 mov es:[di], ax
+    176
+    177	0195  50			 push ax
+    178
+    179	0196  8B 0E 0004r		 mov cx, Len
+    180	019A  83 E9 01			 sub cx, 1
+    181	019D  B8 0002			 mov ax, 2
+    182	01A0  F6 E1			 mul cl
+    183	01A2  50			 push ax
+    184	01A3  03 F8			 add di, ax
+    185	01A5  8B 0E 002Cr		 mov cx, [Tangles+2]
+    186	01A9  26: 89 0D			 mov es:[di], cx
+    187
+    188	01AC  8B FA			 mov di, dx
+    189	01AE  8B 1E 0006r		 mov bx, Hight
+    190	01B2  B0 A0			 mov al, 160
+    191	01B4  F6 E3			 mul bl
+    192	01B6  03 F8			 add di, ax
+    193	01B8  8B 0E 002Er		 mov cx, [Tangles+4]
+    194	01BC  26: 89 0D			 mov es:[di], cx
+    195
+    196	01BF  5B			 pop bx
+    197	01C0  03 FB			 add di, bx
+    198	01C2  8B 0E 0030r		 mov cx, [Tangles+6]
+    199	01C6  26: 89 0D			 mov es:[di], cx
+    200
+    201				     ;--------------------------------------------------------------------------------
+    202
+    203	01C9  B8 4C00			 mov ax, 4C00h
+    204	01CC  CD 21			 int 21h
+    205
+    206				     ;==============================================================================
+    207				     ; PROCEDURES
+    208				     ;==============================================================================
+    209
+    210				     ;------------------------------------------------------------------------------
+    211				     ; draw_column
+    212				     ;
+    213				     ; Draw Column with	symbol `ax`
+    214				     ; Entry:
+    215				     ;	     ax	- symbol (word:	attr<<8	| char)
+    216				     ;	     es:[di] - start memory address
+    217				     ;	     cx	- len column
+    218				     ; Return:
+    219				     ;	     -
+    220				     ; Destroy:
+    221				     ;	     bx, di, cx
+    222				     ;------------------------------------------------------------------------------
+    223	01CE			     draw_column PROC
+    224	01CE			     @@next:
+    225	01CE  BB 00A0			 mov bx, 160
+    226	01D1  03 FB			 add di, bx
+    227	01D3  26: 89 05			 mov word ptr es:[di], ax
+    228	01D6  E2 F6			 loop @@next
+Turbo Assembler	 Version 4.1	    02/25/26 22:05:08	    Page 5
+102.asm
+
+
+
+    229	01D8  C3			 ret
+    230	01D9			     draw_column ENDP
+    231
+    232				     ;------------------------------------------------------------------------------
+    233				     ; fill_fon
+    234				     ;
+    235				     ; Fill fon	of place
+    236				     ; Entry:
+    237				     ;	     ax	- symbol (word:	attr<<8	| char)
+    238				     ;	     bx	- hight
+    239				     ;	     cx	- len
+    240				     ;	     es:[di] - start memory address
+    241				     ; Return:
+    242				     ;	     -
+    243				     ; Destroy:
+    244				     ;	     bx, cx, di
+    245				     ;------------------------------------------------------------------------------
+    246	01D9			     fill_fon PROC
+    247	01D9			     @@next:
+    248	01D9  87 D9			 xchg bx, cx
+    249	01DB  57			 push di
+    250	01DC  51			 push cx
+    251	01DD  F3> AB			 rep stosw
+    252	01DF  59			 pop cx
+    253	01E0  5F			 pop di
+    254	01E1  81 C7 00A0		 add di, 160
+    255	01E5  87 D9			 xchg bx, cx
+    256	01E7  E2 F0			 loop @@next
+    257	01E9  C3			 ret
+    258	01EA			     fill_fon ENDP
+    259
+    260				     ;------------------------------------------------------------------------------
+    261				     ; print_text
+    262				     ;
+    263				     ; Print string
+    264				     ; Entry (your convention):
+    265				     ;	     al	- color	fon
+    266				     ;	     cx	- len
+    267				     ;	     es:[bx] - start video address
+    268				     ;	     cs:[di] - string address
+    269				     ; Return:
+    270				     ;	     -
+    271				     ; Destroy:
+    272				     ;	     ax, bx, cx, di
+    273				     ;------------------------------------------------------------------------------
+    274	01EA			     print_text	PROC
+    275	01EA  8A E0			 mov ah, al
+    276	01EC			     @@next:
+    277	01EC  8A 05			 mov al, byte ptr [di]
+    278	01EE  26: 89 07			 mov es:[bx], ax
+    279	01F1  47			 inc di
+    280	01F2  43			 inc bx
+    281	01F3  43			 inc bx
+    282	01F4  E2 F6			 loop @@next
+    283	01F6  C3			 ret
+    284	01F7			     print_text	ENDP
+    285
+Turbo Assembler	 Version 4.1	    02/25/26 22:05:08	    Page 6
+102.asm
+
+
+
+    286				     ;------------------------------------------------------------------------------
+    287				     ; Strlen
+    288				     ;
+    289				     ; Find len	fo string
+    290				     ; Entry:
+    291				     ;	     al	- symbol of end
+    292				     ;	     es:[di] - start string address
+    293				     ; Return:
+    294				     ;	     es:[di] - address of symbol after end
+    295				     ;	     cx	- len string
+    296				     ; Destroy:
+    297				     ;	     cx
+    298				     ;------------------------------------------------------------------------------
+    299	01F7			     Strlen PROC
+    300	01F7  33 C9			 xor cx, cx
+    301	01F9  80 E9 01			 sub cl, 1		    ; cx = 00FFh
+    302	01FC  F2> AE			 repne scasb
+    303	01FE  F6 D9			 neg cl
+    304	0200  83 E9 01			 sub cx, 1
+    305	0203  C3			 ret
+    306	0204			     Strlen ENDP
+    307
+    308				     ;------------------------------------------------------------------------------
+    309				     ; ctr_dt_text
+    310				     ;
+    311				     ; Parse command line and fill stack to print text
+    312				     ; Entry:
+    313				     ;	     es:[di] - start address
+    314				     ;	     bx	in this	proc - counter of strings
+    315				     ;	     dx	- max address
+    316				     ;	     al	- end symbol
+    317				     ;
+    318				     ; Return:
+    319				     ; (addresses are just examples)
+    320				     ; 0100h  di  - address (1)
+    321				     ; 0098h  cx  - len	(1)
+    322				     ; 0096h  di  - address (2)
+    323				     ; 0094h  cx  - len	(2)
+    324				     ; Destroy:
+    325				     ;	     ax, bx, cx, di, si
+    326				     ; Note:
+    327				     ;	     This function must	called in start
+    328				     ;	     of	program, because it destroys a lot of registers
+    329				     ;	     and we can't use stack to save its
+    330				     ;------------------------------------------------------------------------------
+    331	0204			     ctr_dt_text PROC
+    332	0204  5E			 pop si
+    333	0205  33 DB			 xor bx, bx
+    334					 ; cmp di, dx
+    335					 ; je @@standard
+    336	0207  EB 1F 90			 jmp @@next
+    337
+    338	020A			     @@standard:
+    339	020A  50 55 8B EC C7 46	02+	 push 80h
+    340	      0080 5D
+    341	0214  50 55 8B EC C7 46	02+	 push 1
+    342	      0001 5D
+Turbo Assembler	 Version 4.1	    02/25/26 22:05:08	    Page 7
+102.asm
+
+
+
+    343	021E  BB 0001			 mov bx, 1
+    344	0221  C7 06 0004r 0002		 mov [Len], 2
+    345	0227  C3			 ret
+    346
+    347	0228			     @@next:
+    348	0228  47			 inc di
+    349	0229  26: 80 3D	2D		 cmp byte ptr es:[di], Flag_Char
+    350	022D  74 37			 je @@flag
+    351
+    352	022F  57			 push di
+    353	0230  E8 FFC4			 call Strlen
+    354
+    355	0233  50			 push ax
+    356	0234  4F			 dec di
+    357	0235  A1 0010r			 mov ax, [Chars+6]
+    358	0238  89 05			 mov [di], ax
+    359	023A  47			 inc di
+    360	023B  58			 pop ax
+    361
+    362	023C  3B FA			 cmp di, dx
+    363	023E  77 0B			 ja  @@end
+    364
+    365	0240  3B 0E 0004r		 cmp cx, [Len]
+    366	0244  77 1A			 ja  @@inc_1
+    367
+    368	0246			     @@inc_2:
+    369	0246  43			 inc bx
+    370	0247  49			 dec cx
+    371	0248  51			 push cx
+    372	0249  EB DD			 jmp @@next
+    373
+    374	024B			     @@end:
+    375	024B  5F			 pop di
+    376
+    377	024C  A1 0004r			 mov ax, [Len]
+    378	024F  05 0003			 add ax, 3
+    379	0252  A3 0004r			 mov [Len], ax
+    380
+    381	0255  53			 push bx
+    382	0256  83 C3 03			 add bx, 3
+    383	0259  89 1E 0006r		 mov [Hight], bx
+    384	025D  5B			 pop bx
+    385
+    386	025E  56			 push si
+    387	025F  C3			 ret
+    388
+    389	0260			     @@inc_1:
+    390	0260  89 0E 0004r		 mov [Len], cx
+    391	0264  EB E0			 jmp @@inc_2
+    392
+    393	0266			     @@flag:
+    394	0266  47			 inc di
+    395	0267  26: 80 3D	78		 cmp byte ptr es:[di], 'x'
+    396	026B  74 1A			 je @@x
+    397	026D  26: 80 3D	79		 cmp byte ptr es:[di], 'y'
+    398	0271  74 23			 je @@y
+    399	0273  26: 80 3D	72		 cmp byte ptr es:[di], 'r'
+Turbo Assembler	 Version 4.1	    02/25/26 22:05:08	    Page 8
+102.asm
+
+
+
+    400	0277  74 2C			 je @@r
+    401	0279  26: 80 3D	74		 cmp byte ptr es:[di], 't'
+    402	027D  74 55			 je @@t
+    403	027F  26: 80 3D	66		 cmp byte ptr es:[di], 'f'
+    404	0283  74 3F			 je @@f
+    405
+    406	0285  EB A1			 jmp @@next
+    407
+    408	0287			     @@x:
+    409	0287  83 C7 02			 add di, 2
+    410	028A  50			 push ax
+    411	028B  E8 00AC			 call two_char_to_num
+    412	028E  32 E4			 xor ah, ah
+    413	0290  A3 0000r			 mov [X_cord], ax
+    414	0293  58			 pop ax
+    415	0294  EB 92			 jmp @@next
+    416
+    417	0296			     @@y:
+    418	0296  83 C7 02			 add di, 2
+    419	0299  50			 push ax
+    420	029A  E8 009D			 call two_char_to_num
+    421	029D  32 E4			 xor ah, ah
+    422	029F  A3 0002r			 mov [Y_cord], ax
+    423	02A2  58			 pop ax
+    424	02A3  EB 83			 jmp @@next
+    425
+    426	02A5			     @@r:
+    427	02A5  83 C7 02			 add di, 2
+    428	02A8  50			 push ax
+    429	02A9  E8 008E			 call two_char_to_num
+    430	02AC  32 E4			 xor ah, ah
+    431
+    432	02AE  A2 000Ar			 mov byte ptr [Chars+0], al
+    433	02B1  A2 000Cr			 mov byte ptr [Chars+2], al
+    434	02B4  A2 002Ar			 mov byte ptr [Tangles+0], al
+    435	02B7  A2 002Cr			 mov byte ptr [Tangles+2], al
+    436	02BA  A2 002Er			 mov byte ptr [Tangles+4], al
+    437	02BD  A2 0030r			 mov byte ptr [Tangles+6], al
+    438
+    439	02C0  58			 pop ax
+    440	02C1  E9 FF64			 jmp @@next
+    441
+    442	02C4			     @@f:
+    443	02C4  83 C7 02			 add di, 2
+    444	02C7  50			 push ax
+    445	02C8  E8 006F			 call two_char_to_num
+    446	02CB  32 E4			 xor ah, ah
+    447
+    448	02CD  A2 000Er			 mov byte ptr [Chars+4], al
+    449	02D0  58			 pop ax
+    450	02D1  E9 FF54			 jmp @@next
+    451
+    452	02D4			     @@t:
+    453	02D4  83 C7 02			 add di, 2
+    454	02D7  50			 push ax
+    455	02D8  E8 005F			 call two_char_to_num
+    456	02DB  32 E4			 xor ah, ah
+Turbo Assembler	 Version 4.1	    02/25/26 22:05:08	    Page 9
+102.asm
+
+
+
+    457
+    458	02DD  A2 0010r			 mov byte ptr [Chars+6], al
+    459	02E0  58			 pop ax
+    460	02E1  E9 FF44			 jmp @@next
+    461
+    462	02E4			     ctr_dt_text ENDP
+    463
+    464				     ;------------------------------------------------------------------------------
+    465				     ; prt_dt_text
+    466				     ;
+    467				     ; Print text after	ctr_dt_text
+    468				     ; Entry:
+    469				     ;	     dx	- left hight tangle
+    470				     ;	     cx	- amount strings
+    471				     ; Destroy:
+    472				     ;	     ax, bx, cx, dx, di, si
+    473				     ;------------------------------------------------------------------------------
+    474	02E4			     prt_dt_text PROC
+    475	02E4  5E			 pop si
+    476	02E5  81 C2 00A0		 add dx, 160
+    477
+    478	02E9			     @@next:
+    479	02E9  81 C2 00A0		 add dx, 160
+    480
+    481	02ED  A1 0004r			 mov ax, Len
+    482	02F0  5B			 pop bx			     ; get len string
+    483	02F1  53			 push bx
+    484	02F2  2B C3			 sub ax, bx
+    485	02F4  D1 F8			 sar ax, 1		     ; ax = ax/2
+    486	02F6  BB 0002			 mov bx, 2
+    487	02F9  F6 E3			 mul bl
+    488	02FB  5B			 pop bx
+    489
+    490	02FC  5F			 pop di			     ; get string address
+    491
+    492	02FD  52			 push dx
+    493	02FE  03 D0			 add dx, ax		     ; dx - start address
+    494
+    495	0300  51			 push cx		     ; save cx
+    496	0301  52			 push dx
+    497
+    498	0302  8B CB			 mov cx, bx
+    499	0304  8B 1E 0010r		 mov bx, [Chars+6]
+    500	0308  8A C7			 mov al, bh
+    501	030A  5B			 pop bx
+    502
+    503	030B  E8 FEDC			 call print_text
+    504
+    505	030E  59			 pop cx
+    506	030F  5A			 pop dx
+    507
+    508	0310  E2 D7			 loop @@next
+    509
+    510	0312  56			 push si
+    511	0313  C3			 ret
+    512	0314			     prt_dt_text ENDP
+    513
+Turbo Assembler	 Version 4.1	    02/25/26 22:05:08	    Page 10
+102.asm
+
+
+
+    514				     ;------------------------------------------------------------------------------
+    515				     ; ascii_to_num
+    516				     ;
+    517				     ; Transform ascii byte to number
+    518				     ; Entry:
+    519				     ;	     al	- symbol
+    520				     ; Return:
+    521				     ;	     al	- value
+    522				     ;------------------------------------------------------------------------------
+    523	0314			     ascii_to_num    PROC
+    524	0314  3C 30			 cmp al, '0'
+    525	0316  76 14			 jna @@error
+    526	0318  3C 39			 cmp al, '9'
+    527	031A  76 11			 jna @@number
+    528	031C  3C 41			 cmp al, 'A'
+    529	031E  72 0C			 jb @@error
+    530	0320  3C 46			 cmp al, 'F'
+    531	0322  76 0C			 jna @@UPchar
+    532	0324  3C 61			 cmp al, 'a'
+    533	0326  72 04			 jb @@error
+    534	0328  3C 66			 cmp al, 'f'
+    535	032A  76 09			 jna @@DOWNchar
+    536
+    537	032C			     @@error:
+    538	032C  C3			 ret
+    539
+    540	032D			     @@number:
+    541	032D  2C 30			 sub al, '0'
+    542	032F  C3			 ret
+    543
+    544	0330			     @@UPchar:
+    545	0330  2C 41			 sub al, 'A'
+    546	0332  04 0A			 add al, 0Ah
+    547	0334  C3			 ret
+    548
+    549	0335			     @@DOWNchar:
+    550	0335  2C 61			 sub al, 'a'
+    551	0337  04 0A			 add al, 0Ah
+    552	0339  C3			 ret
+    553
+    554	033A			     ascii_to_num    ENDP
+    555
+    556
+    557				     ;------------------------------------------------------------------------------
+    558				     ; two_char_to_num
+    559				     ;
+    560				     ; Transform two symbols to	num (8 bit)
+    561				     ; Entry:
+    562				     ;	     es:[di] - start address
+    563				     ; Return:
+    564				     ;	     al	- num
+    565				     ;	  ```di	+= 2```
+    566				     ; Destroy:
+    567				     ;	     ax
+    568				     ;------------------------------------------------------------------------------
+    569	033A			     two_char_to_num PROC
+    570
+Turbo Assembler	 Version 4.1	    02/25/26 22:05:08	    Page 11
+102.asm
+
+
+
+    571	033A  26: 8A 05			 mov al, byte ptr es:[di]
+    572	033D  E8 FFD4			 call ascii_to_num
+    573	0340  8A E0			 mov ah, al
+    574	0342  47			 inc di
+    575	0343  26: 8A 05			 mov al, byte ptr es:[di]
+    576	0346  E8 FFCB			 call ascii_to_num
+    577	0349  D0 E4 D0 E4 D0 E4	D0+	 shl ah, 4
+    578	      E4
+    579	0351  02 C4			 add al, ah
+    580	0353  47			 inc di
+    581	0354  C3			 ret
+    582
+    583	0355			     two_char_to_num ENDP
+    584
+    585
+    586
+    587	0355			     set_char_gen    PROC
+    588					 ;al - number ascii symbol
+    589					 ;es:[dx] - start data
+    590
+    591
+    592
+    593
+    594
+    595	0355			     set_char_gen    ENDP
+    596
+    597				     ;==============================================================================
+    598				     ; CONST / STRINGS
+    599				     ;==============================================================================
+    600
+    601	0355  50 6F 6C 74 6F 72	61+  STD_STR  db 'Poltorashka$'
+    602	      73 68 6B 61 24
+    603
+    604				     end start
+Turbo Assembler	 Version 4.1	    02/25/26 22:05:08	    Page 12
+Symbol Table
+
+
+
+
+Symbol Name			  Type	 Value
+
+??DATE				  Text	 "02/25/26"
+??FILENAME			  Text	 "102	  "
+??TIME				  Text	 "22:05:08"
+??VERSION			  Number 040A
+@32BIT				  Text	 0
+@@DOWNCHAR			  Near	 DGROUP:0335
+@@END				  Near	 DGROUP:024B
+@@ERROR				  Near	 DGROUP:032C
+@@F				  Near	 DGROUP:02C4
+@@FLAG				  Near	 DGROUP:0266
+@@INC_1				  Near	 DGROUP:0260
+@@INC_2				  Near	 DGROUP:0246
+@@NEXT				  Near	 DGROUP:01CE
+@@NEXT				  Near	 DGROUP:01D9
+@@NEXT				  Near	 DGROUP:01EC
+@@NEXT				  Near	 DGROUP:0228
+@@NEXT				  Near	 DGROUP:02E9
+@@NUMBER			  Near	 DGROUP:032D
+@@R				  Near	 DGROUP:02A5
+@@STANDARD			  Near	 DGROUP:020A
+@@T				  Near	 DGROUP:02D4
+@@UPCHAR			  Near	 DGROUP:0330
+@@X				  Near	 DGROUP:0287
+@@Y				  Near	 DGROUP:0296
+@CODE				  Text	 DGROUP
+@CODESIZE			  Text	 0
+@CPU				  Text	 0101H
+@CURSEG				  Text	 _TEXT
+@DATA				  Text	 DGROUP
+@DATASIZE			  Text	 0
+@FILENAME			  Text	 102
+@INTERFACE			  Text	 000H
+@MODEL				  Text	 1
+@STACK				  Text	 DGROUP
+@WORDSIZE			  Text	 2
+ASCII_TO_NUM			  Near	 DGROUP:0314
+BUFFER				  Word	 DGROUP:0008
+CHARS				  Word	 DGROUP:000A
+CTR_DT_TEXT			  Near	 DGROUP:0204
+DRAW_COLUMN			  Near	 DGROUP:01CE
+FILL_FON			  Near	 DGROUP:01D9
+FLAG_CHAR			  Number 002D
+HIGHT				  Word	 DGROUP:0006
+LEN				  Word	 DGROUP:0004
+NULL_CHAR			  Number 0024
+PRINT_TEXT			  Near	 DGROUP:01EA
+PRT_DT_TEXT			  Near	 DGROUP:02E4
+SET_CHAR_GEN			  Near	 DGROUP:0355
+START				  Near	 DGROUP:0100
+STD_STR				  Byte	 DGROUP:0355
+STRLEN				  Near	 DGROUP:01F7
+TANGLES				  Word	 DGROUP:002A
+TWO_CHAR_TO_NUM			  Near	 DGROUP:033A
+X_CORD				  Word	 DGROUP:0000
+Turbo Assembler	 Version 4.1	    02/25/26 22:05:08	    Page 13
+Symbol Table
+
+
+
+Y_CORD				  Word	 DGROUP:0002
+
+Macro Name
+
+DRAW_LINE
+
+Groups & Segments		  Bit Size Align  Combine Class
+
+DGROUP				  Group
+  _DATA				  16  004A Word	  Public  DATA
+  _TEXT				  16  0361 Word	  Public  CODE
+
