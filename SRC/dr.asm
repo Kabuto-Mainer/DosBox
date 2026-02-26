@@ -42,6 +42,8 @@ start:
 
 
 resident                PROC
+        std
+
         push ax
         call get_signal
         cmp ax, 0
