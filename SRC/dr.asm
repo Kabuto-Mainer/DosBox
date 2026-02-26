@@ -18,6 +18,23 @@ TABLE_COLOR             equ     4ah
 START_MEMORY_SAVE_PLACE equ     0b800h + 4096
 
 
+;------------------------------------------------------------------------------
+; draw_line
+;
+; Draw line by `ax`
+; Entry:
+;       ax - symbol (word: attr<<8 | char)
+;       cx - len (count of WORDs)
+;       es:[di] - start video memory
+; Return:
+;       -
+; Destroy:
+;       cx, di
+;------------------------------------------------------------------------------
+draw_line MACRO
+        rep stosw
+        ENDM
+
 .code
 org 100h
 
@@ -30,6 +47,19 @@ start:
         call replace_irq_address
         mov word ptr standard_int_offset, ax
         mov word ptr standard_int_segment, es
+
+        xor di, di
+        mov dx, 160
+        mov ax, Y_COORD
+        mul dl
+        add di, dx
+
+        mov dx, 2
+        mov ax, Y_COORD
+        mul dl
+        add dx, di
+
+        call init_buffer_address
 
         ; call draw_table
         int 09h
@@ -47,31 +77,89 @@ resident                PROC
         cmp ax, 0
         pop ax
         je @@standard_int
+        cmp ax, 1
+        jmp @@show_reg
+        ; jmp @@hide
 
 
+;to timer
 @@show_reg:
-        ; call save_area
+
+        call compare_buffer
+        jmp @@show
+
+@@init_reg:
+        push ax bx cx dx es di si
+        mov ax, AMOUNT_REGISTERS
+        add ax, 2
+        mov bx, LEN_FORMAT
+        add bx, 1
+        mov cx, 160
+        mov dx, 160
+        push 0b800h
+        pop es
+        mov di, cs:[START_VIDEO_BUFFER + 2]
+        mov si, cs:[START_FON_BUFFER + 2]
+        call copy_area
+        pop si di es dx cx bx ax
+
+@@show:
         call fill_reg_data
 
-        push ax es di
-        mov di, 160
-        mov ax, Y_COORD
-        inc ax
-        mul di
-        mov di, ax
-        mov ax, X_COORD
-        inc ax
-        shl ax, 1
-        add di, ax
+;         mov di, 160
+;         mov ax, Y_COORD
+;         inc ax
+;         mul di
+;         mov di, ax
+;         mov ax, X_COORD
+;         inc ax
+;         shl ax, 1
+;         add di, ax
+;
+;         mov ax, 0b800h
+;         mov es, ax
 
-        mov ax, 0b800h
-        mov es, ax
+        push ax es di
+        mov es, cs:[START_TABLE_BUFFER + 0]
+        mov di, cs:[START_TABLE_BUFFER + 2]
 
         mov ax, offset ALL_REGISTER_DATA
         call show_reg
         pop di es ax
 
         call draw_table
+
+        push ax bx cx dx es di si
+        mov ax, AMOUNT_REGISTERS
+        add ax, 2
+        mov bx, LEN_FORMAT
+        add bx, 1
+        mov cx, 160
+        mov dx, 160
+        push 0b800h
+        pop es
+        mov di, cs:[START_TABLE_BUFFER + 2]
+        mov si, cs:[START_VIDEO_BUFFER + 2]
+        call copy_area
+        pop si di es dx cx bx ax
+        jmp @@own_end
+
+@@hide:
+        push ax bx cx dx es di si
+        mov ax, AMOUNT_REGISTERS
+        add ax, 2
+        mov bx, LEN_FORMAT
+        add bx, 1
+        mov cx, 160
+        mov dx, 160
+        push 0b800h
+        pop es
+        mov di, cs:[START_FON_BUFFER + 2]
+        mov si, cs:[START_VIDEO_BUFFER + 2]
+        call copy_area
+        pop si di es dx cx bx ax
+
+@@own_end:
 
         push ax
         mov al, 20h
@@ -95,7 +183,7 @@ TABLE_TANGLES   dw   4cdah, 4cbfh, 4cc0h, 4cd9h
 TABLE_LINES     dw   4cc4h, 4cb3h
 NAME_REGISTERS  dw   'ax', 'bx', 'cx', 'dx', 'si', 'di', 'bp', 'sp', 'ds', 'es', 'ss', 'cs', 'ip'
 ALL_REGISTER_DATA       dw  AMOUNT_REGISTERS dup ()
-
+ACTIVE_FLAG db  0
 
 
 ;------------------------------------------------------------------------------
@@ -125,6 +213,12 @@ get_signal              PROC
         out 61h, al
         and al, not 80h
         out 61h, al
+
+        push ax
+        mov al, ACTIVE_FLAG
+        neg al
+        cmp al, 0
+        je @@show
         mov ax, 2
         ret
 
@@ -300,7 +394,7 @@ draw_table              PROC
         push di
         mov cx, LEN_FORMAT
         mov ax, cs:TABLE_LINES[0]
-        call draw_line
+        draw_line
 
         pop di
         push di
@@ -311,7 +405,7 @@ draw_table              PROC
         add di, ax
         mov ax, cs:TABLE_LINES[0]
         mov cx, LEN_FORMAT
-        call draw_line
+        draw_line
 
         pop di
         mov ax, offset TABLE_TANGLES
@@ -343,30 +437,12 @@ draw_table              PROC
 ;------------------------------------------------------------------------------
 draw_column PROC
 @@next:
-    mov bx, 160
-    add di, bx
-    mov word ptr es:[di], ax
-    loop @@next
-    ret
+        mov bx, 160
+        add di, bx
+        mov word ptr es:[di], ax
+        loop @@next
+        ret
 draw_column ENDP
-
-;------------------------------------------------------------------------------
-; draw_line
-;
-; Draw line by `ax`
-; Entry:
-;       ax - symbol (word: attr<<8 | char)
-;       cx - len (count of WORDs)
-;       es:[di] - start video memory
-; Return:
-;       -
-; Destroy:
-;       cx, di
-;------------------------------------------------------------------------------
-draw_line PROC
-    rep stosw
-    ret
-draw_line ENDP
 
 ;------------------------------------------------------------------------------
 ; draw_tangles
@@ -409,7 +485,7 @@ draw_tangles PROC
     mov es:[di], si
 
     add di, cx
-    mov si, cs:[bp+6]
+    mov si, cs:[bp+6]; dx - left hight tangle
     mov es:[di], si
 
     pop si bp
@@ -458,7 +534,145 @@ number_to_ascii_16      PROC
         ret
                         ENDP
 
-        dw 1000 dup (0)
+
+START_VIDEO_BUFFER  dw 0, 0
+START_TABLE_BUFFER  dw 0, 0
+START_FON_BUFFER    dw 0, 0
+
+
+;------------------------------------------------------------------------------
+; copy_area
+;
+; Draw same area
+; Entry:
+;       ax - hight area
+;       bx - len area
+;       cx - step of hight of in area
+;       dx - step of hight of out area
+;       es - start segment
+;       di - start address in area
+;       si - start address out area
+; Destroy:
+;       -
+;------------------------------------------------------------------------------
+copy_area               PROC
+        push ax di si
+
+@@next_out_circle:
+        push di si
+        push bx
+
+
+@@next_in_circle:
+        push ax
+        mov ax, word ptr es:[di]
+        mov word ptr es:[si], ax
+        pop ax
+        add di, 2
+        add si, 2
+        dec bx
+        cmp bx, 0
+        jne @@next_in_circle
+
+        pop bx
+        pop si di
+        add si, dx
+        add di, cx
+
+        dec ax
+        cmp ax, 0
+        jne @@next_out_circle
+
+        pop si di ax
+        ret
+                        ENDP
+
+
+;------------------------------------------------------------------------------
+; compare_buffer
+;
+; Compare VIDEO_BUFFER and TABLE_BUFFER and different copy to FON_BUFFER
+; Entry:
+;       -
+; Destroy:
+;       -
+;------------------------------------------------------------------------------
+compare_buffer          PROC
+
+        push ax bx cx dx di es
+
+        mov bx, cs:[START_TABLE_BUFFER + 2]
+        mov dx, cs:[START_VIDEO_BUFFER + 2]
+        mov di, cs:[START_FON_BUFFER + 2]
+        mov cx, LEN_FORMAT
+        add cx, 1
+        mov ax, AMOUNT_REGISTERS
+        add ax, 2
+
+@@next_out_circle:
+
+        push bx dx di
+        push cx
+
+@@next_in_circle:
+        push ax
+
+        mov es, word ptr cs:[START_TABLE_BUFFER + 0]
+        mov ax, es:[bx]
+
+        mov es, word ptr cs:[START_VIDEO_BUFFER + 0]
+        push di
+        mov dx, di
+        mov cx, es:[di]
+        pop di
+
+        cmp cx, ax
+        jne @@replace
+
+@@not_replace:
+
+        add bx, 2
+        add dx, 2
+        add di, 2
+
+        pop ax
+        dec ax
+        cmp ax, 0
+        jne @@next_in_circle
+        mov ax, AMOUNT_REGISTERS
+        add ax, 2
+
+        pop cx
+        dec cx
+        cmp cx, 0
+        je @@end
+
+        pop di dx bx
+        add dx, 160
+        add bx, 160
+        add di, 160
+
+        jmp @@next_out_circle
+
+
+@@replace:
+        mov es, word ptr cs:[START_FON_BUFFER + 0]
+        mov word ptr es:[di], ax
+
+        mov es, word ptr cs:[START_VIDEO_BUFFER + 0]
+        push di
+        mov di, dx
+        mov word ptr es:[di], cx
+        pop di
+
+        jmp @@not_replace
+
+@@end:
+        pop es di dx cx bx ax
+        ret
+                        ENDP
+
+
 end_resident:
 
 
@@ -503,5 +717,31 @@ replace_irq_address     PROC
         pop cx bx dx di
         ret
                         ENDP
+
+
+;------------------------------------------------------------------------------
+; init_buffer_address
+;
+; fill buffers address
+; Entry:
+;       dx - left hight tangle of table
+; Destroy:
+;       -
+;------------------------------------------------------------------------------
+init_buffer_address     PROC
+        push ax
+        mov ax, 0b800h
+        mov [START_TABLE_BUFFER + 0], ax
+        mov [START_VIDEO_BUFFER + 0], ax
+        mov [START_FON_BUFFER + 0], ax
+
+        mov [START_TABLE_BUFFER + 2], dx
+        mov [START_VIDEO_BUFFER + 2], 4096
+        mov [START_FON_BUFFER + 0], 4096 * 2
+
+        pop ax
+        ret
+                        ENDP
+
 
 end       start
