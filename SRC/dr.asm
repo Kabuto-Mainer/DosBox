@@ -2,12 +2,12 @@
 .386
 Locals @@
 
-X_COORD                 equ     10
-Y_COORD                 equ     5
+X_COORD                 equ     0
+Y_COORD                 equ     0
 
 END_OF_INTER            equ     20h
 AMOUNT_REGISTERS        equ     13
-LEN_FORMAT              equ     9
+LEN_FORMAT              equ     8
 
 CONTROL_REG_SCAN_CODE   equ     1 ;tab - 15
 CODE_FAR_JUMP           equ     00eah
@@ -48,6 +48,14 @@ start:
         mov word ptr standard_int_offset, ax
         mov word ptr standard_int_segment, es
 
+        push cs
+        pop es
+        mov ax, offset timer
+        mov cx, 0
+        call replace_irq_address
+        mov word ptr standard_int_offset_timer, ax
+        mov word ptr standard_int_segment_timer, es
+
         xor di, di
         mov dx, 160
         mov ax, Y_COORD
@@ -55,14 +63,16 @@ start:
         add di, dx
 
         mov dx, 2
-        mov ax, Y_COORD
+        mov ax, X_COORD
         mul dl
-        add dx, di
+        add di, ax
 
         call init_buffer_address
 
+        call compare_buffer
+
         ; call draw_table
-        int 09h
+        ; int 09h
 
         mov ax, 3100h
         mov dx, offset end_resident
@@ -74,51 +84,31 @@ start:
 resident                PROC
         push ax
         call get_signal
-        cmp ax, 0
-        pop ax
-        je @@standard_int
+
         cmp ax, 1
-        jmp @@show_reg
-        ; jmp @@hide
+        je @@init_reg
 
+        cmp ax, 2
+        je @@hide
 
-;to timer
-@@show_reg:
+        pop ax
+        jmp @@standard_int
+        ; jmp @@show_timer
+
+timer:
+        push ax
+        mov al, cs:[AUTO_RENEW]
+        cmp al, 1
+        pop ax
+        jne @@standard_timer
+        push ax
+        mov al, cs:[ACTIVE_FLAG]
+        cmp al, 0
+        pop ax
+        jne @@standard_timer
 
         call compare_buffer
-        jmp @@show
-
-@@init_reg:
-        push ax bx cx dx es di si
-        mov ax, AMOUNT_REGISTERS
-        add ax, 2
-        mov bx, LEN_FORMAT
-        add bx, 1
-        mov cx, 160
-        mov dx, 160
-        push 0b800h
-        pop es
-        mov di, cs:[START_VIDEO_BUFFER + 2]
-        mov si, cs:[START_FON_BUFFER + 2]
-        call copy_area
-        pop si di es dx cx bx ax
-
-@@show:
         call fill_reg_data
-
-;         mov di, 160
-;         mov ax, Y_COORD
-;         inc ax
-;         mul di
-;         mov di, ax
-;         mov ax, X_COORD
-;         inc ax
-;         shl ax, 1
-;         add di, ax
-;
-;         mov ax, 0b800h
-;         mov es, ax
-
         push ax es di
         mov es, cs:[START_TABLE_BUFFER + 0]
         mov di, cs:[START_TABLE_BUFFER + 2]
@@ -142,9 +132,89 @@ resident                PROC
         mov si, cs:[START_VIDEO_BUFFER + 2]
         call copy_area
         pop si di es dx cx bx ax
+
+@@standard_timer:
+        db CODE_FAR_JUMP
+standard_int_offset_timer     dw      0       ;jmp to standard_int
+standard_int_segment_timer    dw      0
+        ;ret after this is automatic
+
+
+@@init_reg:
+;         push es ax di
+;         push 0b800h
+;         pop es
+;         mov ax, 4c00h
+;         mov di, 0
+;         mov es:[di], ax
+;         pop di ax es
+;
+;         jmp @@own_end
+        pop ax
+
+
+        push ax bx cx dx es di si
+        mov ax, AMOUNT_REGISTERS
+        add ax, 2
+        mov bx, LEN_FORMAT
+        add bx, 1
+        mov cx, 160
+        mov dx, 160
+        push 0b800h
+        pop es
+        mov di, cs:[START_VIDEO_BUFFER + 2]
+        ; mov si, 0b800h + 40
+        mov si, cs:[START_FON_BUFFER + 2]
+        cli
+        call copy_area
+        sti
+        pop si di es dx cx bx ax
+        ; jmp @@own_end
+
+; @@show_reg:
+        call fill_reg_data
+
+        push ax es di
+        mov es, cs:[START_TABLE_BUFFER + 0]
+        mov di, cs:[START_TABLE_BUFFER + 2]
+
+        mov ax, offset ALL_REGISTER_DATA
+
+        cli
+        call show_reg
+        sti
+        pop di es ax
+
+        call draw_table
+
+@@show_reg_end:
+
+        push ax bx cx dx es di si
+        mov ax, AMOUNT_REGISTERS
+        add ax, 2
+        mov bx, LEN_FORMAT
+        add bx, 1
+        mov cx, 160
+        mov dx, 160
+        push 0b800h
+        pop es
+        mov di, cs:[START_TABLE_BUFFER + 2]
+        mov si, cs:[START_VIDEO_BUFFER + 2]
+        cli
+        call copy_area
+        sti
+        pop si di es dx cx bx ax
         jmp @@own_end
 
+
+@@standard_int:
+        db CODE_FAR_JUMP
+standard_int_offset     dw      0       ;jmp to standard_int
+standard_int_segment    dw      0
+        ;ret after this is automatic
+
 @@hide:
+        pop ax
         push ax bx cx dx es di si
         mov ax, AMOUNT_REGISTERS
         add ax, 2
@@ -156,7 +226,11 @@ resident                PROC
         pop es
         mov di, cs:[START_FON_BUFFER + 2]
         mov si, cs:[START_VIDEO_BUFFER + 2]
+
+        cli
         call copy_area
+        sti
+
         pop si di es dx cx bx ax
 
 @@own_end:
@@ -167,14 +241,6 @@ resident                PROC
         pop ax
         iret
 
-
-@@standard_int:
-        db CODE_FAR_JUMP
-standard_int_offset     dw      0       ;jmp to standard_int
-standard_int_segment    dw      0
-        ;ret after this is automatic
-
-
                         ENDP
 
 
@@ -183,7 +249,8 @@ TABLE_TANGLES   dw   4cdah, 4cbfh, 4cc0h, 4cd9h
 TABLE_LINES     dw   4cc4h, 4cb3h
 NAME_REGISTERS  dw   'ax', 'bx', 'cx', 'dx', 'si', 'di', 'bp', 'sp', 'ds', 'es', 'ss', 'cs', 'ip'
 ALL_REGISTER_DATA       dw  AMOUNT_REGISTERS dup ()
-ACTIVE_FLAG db  0
+ACTIVE_FLAG db  1
+AUTO_RENEW  db  1
 
 
 ;------------------------------------------------------------------------------
@@ -204,7 +271,8 @@ get_signal              PROC
         in al, 60h
         cmp al, CONTROL_REG_SCAN_CODE
         je @@press
-        mov ax, 0
+
+        mov ax, 0 ;0
         ret
 
 @@press:
@@ -214,9 +282,10 @@ get_signal              PROC
         and al, not 80h
         out 61h, al
 
-        push ax
-        mov al, ACTIVE_FLAG
-        neg al
+        mov al, byte ptr cs:[ACTIVE_FLAG]
+        xor al, 1
+        mov byte ptr cs:[ACTIVE_FLAG], al
+
         cmp al, 0
         je @@show
         mov ax, 2
@@ -279,6 +348,7 @@ show_reg                PROC
         mov cx, AMOUNT_REGISTERS
         mov bh, REGISTER_COLOR
         xor si, si
+        add di, 162
 
 @@next:
         push di
@@ -362,61 +432,113 @@ show_reg                PROC
 draw_table              PROC
         push ax bx cx di es
 
-        push 0b800h
-        pop es
-        mov bl, 160
-        mov al, Y_COORD
-        mul bl
-        mov di, ax
-        mov ax, X_COORD
-        shl ax, 1
-        add di, ax
+        mov es, cs:[START_TABLE_BUFFER + 0]
+        mov di, cs:[START_TABLE_BUFFER + 2]
+
         push di
 
         mov cx, AMOUNT_REGISTERS
-        add cx, 1
-        push cx
-        mov ax, cs:TABLE_LINES[2]
-        call draw_column
-
-        pop cx
-        pop di
-        push di
-
-        mov ax, LEN_FORMAT
-        dec ax
-        shl ax, 1
-        add di, ax
+        add cx, 2
         mov ax, cs:TABLE_LINES[2]
         call draw_column
 
         pop di
         push di
+
         mov cx, LEN_FORMAT
         mov ax, cs:TABLE_LINES[0]
         draw_line
 
-        pop di
         push di
+        mov cx, AMOUNT_REGISTERS
+        add cx, 2
+        mov ax, cs:TABLE_LINES[2]
+        call draw_column
+
+        pop di
+        mov di, cs:[START_TABLE_BUFFER + 2]
         mov ax, 160
-        mov bx, AMOUNT_REGISTERS
-        add bx, 1
+        mov bl, AMOUNT_REGISTERS
+        add bl, 2
         mul bl
         add di, ax
-        mov ax, cs:TABLE_LINES[0]
+
         mov cx, LEN_FORMAT
+        mov ax, cs:TABLE_LINES[0]
         draw_line
 
         pop di
         mov ax, offset TABLE_TANGLES
         mov bx, AMOUNT_REGISTERS
-        add bx, 1
+        add bx, 2
         mov cx, LEN_FORMAT
-        dec cx
         call draw_tangles
 
         pop es di cx bx ax
         ret
+
+;         push ax bx cx di es
+; ;
+;         ; push 0b800h
+;         ; pop es
+;         ; mov bl, 160
+;         ; mov al, Y_COORD
+;         ; mul bl
+;         ; mov di, ax
+;         ; mov ax, X_COORD
+;         ; shl ax, 1
+;         ; add di, ax
+;         mov es, cs:[START_TABLE_BUFFER + 0]
+;         mov di, cs:[START_TABLE_BUFFER + 2]
+;         add di, 2
+;
+;         push di
+;
+;
+;         mov cx, AMOUNT_REGISTERS
+;         add cx, 1
+;         push cx
+;         mov ax, cs:TABLE_LINES[2]
+;         call draw_column
+;
+;         pop cx
+;         pop di
+;         push di
+;
+;         mov ax, LEN_FORMAT
+;         dec ax
+;         shl ax, 1
+;         add di, ax
+;         mov ax, cs:TABLE_LINES[2]
+;         call draw_column
+;
+;         pop di
+;         push di
+;         mov cx, LEN_FORMAT
+;         mov ax, cs:TABLE_LINES[0]
+;         draw_line
+;
+;         pop di
+;         push di
+;         mov ax, 160
+;         mov bx, AMOUNT_REGISTERS
+;         add bx, 1
+;         mul bl
+;         ; add di, ax
+;         mov ax, cs:TABLE_LINES[0]
+;         mov cx, LEN_FORMAT
+;         draw_line
+;
+;         pop di
+;         mov ax, offset TABLE_TANGLES
+;         mov bx, AMOUNT_REGISTERS
+;         add bx, 1
+;         mov cx, LEN_FORMAT
+;         dec cx
+;         call draw_tangles
+;
+;         pop es di cx bx ax
+;         ret
                         ENDP
 
 
@@ -437,9 +559,9 @@ draw_table              PROC
 ;------------------------------------------------------------------------------
 draw_column PROC
 @@next:
-        mov bx, 160
-        add di, bx
         mov word ptr es:[di], ax
+        ; mov bx, 160
+        add di, 160
         loop @@next
         ret
 draw_column ENDP
@@ -604,10 +726,11 @@ compare_buffer          PROC
         mov bx, cs:[START_TABLE_BUFFER + 2]
         mov dx, cs:[START_VIDEO_BUFFER + 2]
         mov di, cs:[START_FON_BUFFER + 2]
-        mov cx, LEN_FORMAT
-        add cx, 1
-        mov ax, AMOUNT_REGISTERS
-        add ax, 2
+        mov ax, LEN_FORMAT
+        add ax, 1
+        mov cx, AMOUNT_REGISTERS
+        add cx, 2
+        mov es, word ptr cs:[START_TABLE_BUFFER + 0]
 
 @@next_out_circle:
 
@@ -617,12 +740,9 @@ compare_buffer          PROC
 @@next_in_circle:
         push ax
 
-        mov es, word ptr cs:[START_TABLE_BUFFER + 0]
         mov ax, es:[bx]
-
-        mov es, word ptr cs:[START_VIDEO_BUFFER + 0]
         push di
-        mov dx, di
+        mov di, dx
         mov cx, es:[di]
         pop di
 
@@ -639,15 +759,15 @@ compare_buffer          PROC
         dec ax
         cmp ax, 0
         jne @@next_in_circle
-        mov ax, AMOUNT_REGISTERS
-        add ax, 2
+        mov ax, LEN_FORMAT
+        add ax, 1
 
         pop cx
         dec cx
         cmp cx, 0
+        pop di dx bx
         je @@end
 
-        pop di dx bx
         add dx, 160
         add bx, 160
         add di, 160
@@ -656,13 +776,10 @@ compare_buffer          PROC
 
 
 @@replace:
-        mov es, word ptr cs:[START_FON_BUFFER + 0]
-        mov word ptr es:[di], ax
-
-        mov es, word ptr cs:[START_VIDEO_BUFFER + 0]
+        mov word ptr es:[di], cx
         push di
         mov di, dx
-        mov word ptr es:[di], cx
+        mov word ptr es:[di], ax
         pop di
 
         jmp @@not_replace
@@ -735,9 +852,9 @@ init_buffer_address     PROC
         mov [START_VIDEO_BUFFER + 0], ax
         mov [START_FON_BUFFER + 0], ax
 
-        mov [START_TABLE_BUFFER + 2], dx
-        mov [START_VIDEO_BUFFER + 2], 4096
-        mov [START_FON_BUFFER + 0], 4096 * 2
+        mov [START_VIDEO_BUFFER + 2], 0
+        mov [START_TABLE_BUFFER + 2], 4000
+        mov [START_FON_BUFFER + 2], 4000*2
 
         pop ax
         ret
