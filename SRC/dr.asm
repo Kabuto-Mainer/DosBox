@@ -2,21 +2,12 @@
 .386
 Locals @@
 
-X_COORD                 equ     0
-Y_COORD                 equ     0
-
 END_OF_INTER            equ     20h
 AMOUNT_REGISTERS        equ     13
 LEN_FORMAT              equ     8
 
 CONTROL_REG_SCAN_CODE   equ     1 ;tab - 15
 CODE_FAR_JUMP           equ     00eah
-
-REGISTER_COLOR          equ     048h
-TABLE_COLOR             equ     4ah
-
-START_MEMORY_SAVE_PLACE equ     0b800h + 4096
-
 
 ;------------------------------------------------------------------------------
 ; draw_line
@@ -56,20 +47,29 @@ start:
         mov word ptr standard_int_offset_timer, ax
         mov word ptr standard_int_segment_timer, es
 
+        call parser_flags
+
         xor di, di
         mov dx, 160
-        mov ax, Y_COORD
-        mul dl
-        add di, dx
-
-        mov dx, 2
-        mov ax, X_COORD
+        mov ax, [Y_COORD]
         mul dl
         add di, ax
 
+        mov dx, 2
+        mov ax, [X_COORD]
+        mul dl
+        add di, ax
+        mov dx, di
+
         call init_buffer_address
 
-        call compare_buffer
+        push 0b800h
+        pop es
+        mov di, [START_TABLE_BUFFER + 2]
+        xor ax, ax
+        call fill_area
+
+        ; call compare_buffer
 
         ; call draw_table
         ; int 09h
@@ -131,6 +131,12 @@ timer:
         mov di, cs:[START_TABLE_BUFFER + 2]
         mov si, cs:[START_VIDEO_BUFFER + 2]
         call copy_area
+
+        push dx
+        mov dl, 08h
+        call draw_shadow
+        pop dx
+
         pop si di es dx cx bx ax
 
 @@standard_timer:
@@ -138,7 +144,6 @@ timer:
 standard_int_offset_timer     dw      0       ;jmp to standard_int
 standard_int_segment_timer    dw      0
         ;ret after this is automatic
-
 
 @@init_reg:
 ;         push es ax di
@@ -204,6 +209,12 @@ standard_int_segment_timer    dw      0
         call copy_area
         sti
         pop si di es dx cx bx ax
+
+        push dx
+        mov dl, 08h
+        call draw_shadow
+        pop dx
+
         jmp @@own_end
 
 
@@ -231,6 +242,11 @@ standard_int_segment    dw      0
         call copy_area
         sti
 
+        push dx
+        xor dl, dl
+        call draw_shadow
+        pop dx
+
         pop si di es dx cx bx ax
 
 @@own_end:
@@ -251,7 +267,11 @@ NAME_REGISTERS  dw   'ax', 'bx', 'cx', 'dx', 'si', 'di', 'bp', 'sp', 'ds', 'es',
 ALL_REGISTER_DATA       dw  AMOUNT_REGISTERS dup ()
 ACTIVE_FLAG db  1
 AUTO_RENEW  db  1
+SHADOW_TABLE db 1
 
+X_COORD                 dw      1
+Y_COORD                 dw      0
+REGISTER_COLOR          db     048h
 
 ;------------------------------------------------------------------------------
 ; get_signal
@@ -296,15 +316,6 @@ get_signal              PROC
         ret
                         ENDP
 
-; save_area               PROC
-;
-;
-;
-;                         ENDP
-
-;
-;сделать переменную. показывающую режим отрисовки рамки - постоянно или нет. При каждом нажатии - обновлять
-
 fill_reg_data           PROC
         mov cs:[ALL_REGISTER_DATA + 0], ax
         mov cs:[ALL_REGISTER_DATA + 2], bx
@@ -346,7 +357,7 @@ fill_reg_data           PROC
 show_reg                PROC
         push cx bx si
         mov cx, AMOUNT_REGISTERS
-        mov bh, REGISTER_COLOR
+        mov bh, cs:[REGISTER_COLOR]
         xor si, si
         add di, 162
 
@@ -451,7 +462,7 @@ draw_table              PROC
 
         push di
         mov cx, AMOUNT_REGISTERS
-        add cx, 2
+        add cx, 1
         mov ax, cs:TABLE_LINES[2]
         call draw_column
 
@@ -459,7 +470,7 @@ draw_table              PROC
         mov di, cs:[START_TABLE_BUFFER + 2]
         mov ax, 160
         mov bl, AMOUNT_REGISTERS
-        add bl, 2
+        add bl, 1
         mul bl
         add di, ax
 
@@ -470,7 +481,7 @@ draw_table              PROC
         pop di
         mov ax, offset TABLE_TANGLES
         mov bx, AMOUNT_REGISTERS
-        add bx, 2
+        add bx, 1
         mov cx, LEN_FORMAT
         call draw_tangles
 
@@ -540,9 +551,6 @@ draw_table              PROC
 ;         pop es di cx bx ax
 ;         ret
                         ENDP
-
-
-
 
 ;------------------------------------------------------------------------------
 ; draw_column
@@ -614,6 +622,43 @@ draw_tangles PROC
     ret
 
             ENDP
+
+;------------------------------------------------------------------------------
+; draw_shadow
+;
+; dl - or value
+;------------------------------------------------------------------------------
+draw_shadow             PROC
+        push ax bx cx di es
+
+        mov es, [START_VIDEO_BUFFER + 0]
+        mov di, [START_VIDEO_BUFFER + 2]
+
+        mov ax, LEN_FORMAT
+        shl ax, 1
+        add ax, 160
+        add di, ax
+        mov cx, AMOUNT_REGISTERS
+
+@@next_1:
+        mov ax, es:[di]
+        or al, dl
+        add di, 160
+        loop @@next_1
+
+        sub di, 160
+        sub di, LEN_FORMAT
+        mov cx, LEN_FORMAT
+        dec cx
+
+@@next_2:
+        mov ax, es:[di]
+        or al, dl
+        add di, 2
+        loop @@next_2
+
+        pop es di cx bx ax
+                        ENDP
 
 ;------------------------------------------------------------------------------
 ; number_to_ascii_16
@@ -789,6 +834,34 @@ compare_buffer          PROC
         ret
                         ENDP
 
+;------------------------------------------------------------------------------
+; fill_area
+;
+; fill area, witch start in es:[di] for symbol ax
+; Entry:
+;       es:[di] - start address
+;       ax - symbol of fill
+; Destroy:
+;       di
+;------------------------------------------------------------------------------
+fill_area               PROC
+        push cx bx
+        mov bx, AMOUNT_REGISTERS
+
+@@next:
+        mov cx, LEN_FORMAT
+        push di
+        draw_line
+        pop di
+        add di, 160
+        dec bx
+        cmp bx, 0
+        jne @@next
+
+        pop bx cx
+        ret
+                        ENDP
+
 
 end_resident:
 
@@ -852,7 +925,7 @@ init_buffer_address     PROC
         mov [START_VIDEO_BUFFER + 0], ax
         mov [START_FON_BUFFER + 0], ax
 
-        mov [START_VIDEO_BUFFER + 2], 0
+        mov [START_VIDEO_BUFFER + 2], dx
         mov [START_TABLE_BUFFER + 2], 4000
         mov [START_FON_BUFFER + 2], 4000*2
 
@@ -860,5 +933,138 @@ init_buffer_address     PROC
         ret
                         ENDP
 
+
+parser_flags            PROC
+        push cs
+        pop es
+        mov di, 80h
+        mov cx, [di]
+        cmp cx, 0
+        je @@end
+
+        add di, 1
+
+@@circle:
+        inc di
+        cmp byte ptr [di], '-'
+        je @@flag
+
+        cmp di, 160h
+        je @@end
+        jmp @@circle
+
+; Я знаю о jmp таблице и понимаю. как она работает, однако мне кажется,
+; при малом количестве возможных аргументов будет проще и легче отладить
+; при простом переборе, а не расчете необходимых смещений в зависимости
+; от каждого ASCII символа. + разброс ASCII кодов не мал
+
+@@flag:
+        add di, 3
+        call two_char_to_num
+        xor ah, ah
+        sub di, 4
+
+        cmp byte ptr [di], 'x'
+        je @@x
+        cmp byte ptr [di], 'y'
+        je @@y
+        cmp byte ptr [di], 'c'
+        je @@c
+
+        sub di, 2
+        jmp @@circle
+
+@@x:
+        mov word ptr [X_COORD+0], ax
+        jmp @@circle
+
+@@y:
+        mov word ptr [Y_COORD+0], ax
+        jmp @@circle
+
+@@c:
+        mov byte ptr [TABLE_TANGLES + 1], al
+        mov byte ptr [TABLE_TANGLES + 3], al
+        mov byte ptr [TABLE_TANGLES + 5], al
+        mov byte ptr [TABLE_TANGLES + 7], al
+        mov byte ptr [TABLE_LINES + 1], al
+        mov byte ptr [TABLE_LINES + 3], al
+        mov byte ptr [REGISTER_COLOR+0], al
+        jmp @@circle
+
+@@end:
+        ret
+                        ENDP
+
+
+;------------------------------------------------------------------------------
+; ascii_to_num
+;
+; Transform ascii byte to number
+; Entry:
+;       al - symbol
+; Return:
+;       al - value
+;------------------------------------------------------------------------------
+ascii_to_num    PROC
+    cmp al, '0'
+    jna @@error
+    cmp al, '9'
+    jna @@number
+    cmp al, 'A'
+    jb @@error
+    cmp al, 'F'
+    jna @@UPchar
+    cmp al, 'a'
+    jb @@error
+    cmp al, 'f'
+    jna @@DOWNchar
+
+@@error:
+    ret
+
+@@number:
+    sub al, '0'
+    ret
+
+@@UPchar:
+    sub al, 'A'
+    add al, 0Ah
+    ret
+
+@@DOWNchar:
+    sub al, 'a'
+    add al, 0Ah
+    ret
+
+ascii_to_num    ENDP
+
+
+;------------------------------------------------------------------------------
+; two_char_to_num
+;
+; Transform two symbols to num (8 bit)
+; Entry:
+;       es:[di] - start address
+; Return:
+;       al - num
+;    ```di += 2```
+; Destroy:
+;       ax
+;------------------------------------------------------------------------------
+two_char_to_num PROC
+
+    mov al, byte ptr es:[di]
+    call ascii_to_num
+    mov ah, al
+    inc di
+    mov al, byte ptr es:[di]
+    call ascii_to_num
+    shl ah, 4
+    add al, ah
+    inc di
+    ret
+
+two_char_to_num ENDP
 
 end       start
