@@ -63,7 +63,7 @@ get_signal              PROC
         mov ax, 0
         ret
 
-@@press:
+!!press:
         in al, 61h
         or al, 80h
         out 61h, al

@@ -4,25 +4,30 @@ Locals @@
 
 CHAR_END_INPUT  equ     0dh
 END_CHAR        equ     0h
+CODE_FAR_JUMP           equ     00eah
 
 .code
 org 100h
 
 start:
-        jmp real_start
+        call init_hash_func
 
-INPUT_PASSWORD        db   '00000000' ; 1   dup(0, 0, 0, 0, 0, 0, 0, 0)
-REAL_PASSWORD         db   '00000000'
-
-real_start:
         push cs
         pop es
 
         mov di, offset REAL_PASSWORD
         mov cx, 8
-        call get_hash
-        push ax
 
+;call get_hash
+        pushf
+        push cs
+        push offset after_hash_real
+
+        jmp get_hash_jmp
+
+after_hash_real:
+
+        push ax
         mov di, offset STANDARD_INIT_PHRASE
         call print_std_out
 
@@ -34,7 +39,19 @@ real_start:
 
         mov di, offset INPUT_PASSWORD
         mov cx, 8
-        call get_hash
+
+        pushf
+        push cs
+        push offset after_hash_user
+
+        jmp get_hash_jmp
+
+after_hash_user:
+        push cs
+        pop es
+
+        ; mov di, offset STANDARD_FAILED
+        ; call print_std_out
 
         pop bx
         cmp ax, bx
@@ -52,6 +69,14 @@ not_success:
 
         mov ax, 4C00h
         int 21h
+
+
+get_hash_jmp:
+        db CODE_FAR_JUMP
+hash_segment    dw      0
+hash_offset     dw      0
+
+
 
 ;------------------------------------------------------------------------------
 ; get_std_inp
@@ -107,10 +132,17 @@ print_std_out   PROC
         ret
                 ENDP
 
+STANDARD_INIT_PHRASE    db      'Pls, enter your password', 0ah, END_CHAR
+STANDARD_SUCCESS        db      'Your password is true', 0ah, END_CHAR
+STANDARD_FAILED         db      'UUUUU! Meow', 0ah, END_CHAR
+
+
 
 ;------------------------------------------------------------------------------
 ; get_hash
 ;
+; Note !!
+; This function use iret to return to needed place
 ; Entry:
 ;       es:[di] - start address of string
 ;       cx - len string
@@ -120,6 +152,7 @@ print_std_out   PROC
 ;       di
 ;------------------------------------------------------------------------------
 get_hash                PROC
+
         push bx
         xor bx, bx
         xor ax, ax
@@ -131,12 +164,39 @@ get_hash                PROC
         loop @@next
 
         pop bx
-        ret
+        iret
+
+end_get_hash:
                         ENDP
 
+init_hash_func          PROC
+        push ax bx cx di es
 
-STANDARD_INIT_PHRASE    db      'Pls, enter your password', 0ah, END_CHAR
-STANDARD_SUCCESS        db      'Your password is true', 0ah, END_CHAR
-STANDARD_FAILED         db      'UUUUU! Meow', 0ah, END_CHAR
+        mov ax, offset get_hash
+        mov bx, offset end_get_hash
+        sub bx, ax
+        mov cx, bx
+        inc cx
+        mov bx, ax
+
+        push 0b800h
+        pop es
+        mov di, 4000
+
+        mov word ptr [hash_offset], es
+        mov word ptr [hash_segment], di
+
+@@next:
+        mov al, byte ptr cs:[bx]
+        mov byte ptr es:[di], al
+        inc bx
+        inc di
+        loop @@next
+
+        pop es di cx bx ax
+        ret
+                        ENDP
+INPUT_PASSWORD        db   '00000000' ; 1   dup(0, 0, 0, 0, 0, 0, 0, 0)
+REAL_PASSWORD         db   '00000000'
 
 end             start
