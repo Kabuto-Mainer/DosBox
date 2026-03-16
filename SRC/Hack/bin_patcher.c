@@ -7,7 +7,7 @@
 static const char *NAME_PROGRAM_FILE    = "PSW.asm";
 static const char *NAME_PATCH_FILE      = "HACK.asm";
 
-static const int32_t ADDRESS_REPLACE_PATCH[] = {1, 2};
+static const int ADDRESS_REPLACE_PATCH[] = {1, 2};
 static const int OFFSET_PATCH = 100;
 
 
@@ -16,8 +16,19 @@ static const int OFFSET_PATCH = 100;
 
 int main() {
     size_t size_program = get_file_size(NAME_PROGRAM_FILE);
-    size_t size_patch = get_file_size(NAME_PATCH_FILE);
+    size_t size_patch = get_file_size(NAME_PROGRAM_FILE);
 
+    char *buffer = create_char_buffer(size_program + size_patch);
+
+    FILE *stream = fopen(NAME_PROGRAM_FILE, "rb");
+    fread(buffer, size_program, sizeof(char), stream);
+    fclose(stream);
+
+    stream = fopen(NAME_PATCH_FILE, "rb");
+    fread(buffer + size_program, size_patch, sizeof(char), stream);
+    fclose(stream);
+
+    for (int i = 0; i < )
 }
 
 
@@ -32,26 +43,11 @@ int main() {
  @param [in] name_file Имя загружаемого файла
  @return Указатель на выделенную динамически память
 */
-char * create_char_buffer(const char *file_name) {
-    assert(file_name);
-
-    size_t size = get_file_size(file_name);
-    char *buffer = (char *)calloc(1, size + 1);
+char * create_char_buffer(size_t size) {
+    char *buffer = (char *)calloc(sizeof(char), size);
     if (buffer == NULL) {
-        printf("ERROR with CALLOC\n");
-        return NULL;
+        printf("NULL calloc\n");
     }
-
-    FILE *stream = fopen(file_name, "rb");
-    if (stream == NULL) {
-        printf("NULL file\n");
-        free(buffer);
-        return NULL;
-    }
-
-    size_t amount_chars = fread(buffer, sizeof(char), size, stream);
-    fclose(stream);
-    buffer[amount_chars] = '\0';
 
     return buffer;
 }
