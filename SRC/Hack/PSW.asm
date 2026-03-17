@@ -70,7 +70,7 @@ after_hash_user:
 
         je not_success
         mov cs:[ACCESS_STATUS], 2
-        mov cs:[IS_STOP], 0FFFFh
+        mov cs:[IS_STOP], 0h
         mov di, offset STANDARD_SUCCESS
         call print_std_out
 
@@ -82,7 +82,11 @@ after_hash_user:
 
 not_success:
         mov cs:[ACCESS_STATUS], 1
-        mov cs:[IS_STOP], 0FFFFh
+        mov cs:[IS_STOP], 0h
+        mov ax, cs:[PLAY_MUSIC]
+        add ax, cs:[AMOUNT_SAMPLES]
+        add ax, cs:[AMOUNT_SAMPLES]
+        mov cs:[PLAY_MUSIC], ax
         mov di, offset STANDARD_FAILED
         call print_std_out
 
@@ -209,6 +213,8 @@ init_hash_func          PROC
         xor dh, dh
         mov di, 4000
         add di, dx
+        push 0b800h
+        pop es
 
         mov word ptr [hash_offset], es
         mov word ptr [hash_segment], di
@@ -230,7 +236,7 @@ timer:
         push ax bx cx di si
 
         mov ax, cs:[IS_STOP]
-        cmp ax, 00h
+        cmp ax, 01h
         je stop_music
 
         mov ax, word ptr cs:[MAX_DELAY]
@@ -248,6 +254,13 @@ skip_note:
 
 play_note:
         mov bx, word ptr cs:[CURRENT_SAMPLE]
+        mov ax, cs:[ACCESS_STATUS]
+        cmp ax, 1
+        je plus_msc
+        add bx, cs:[AMOUNT_SAMPLES]
+
+plus_msc:
+
         shl bx, 1
         mov ax, cs:[DATA + bx]
 
@@ -297,115 +310,60 @@ stop_music:
         out 61h, al
         jmp restore_and_exit
 
-AMOUNT_SAMPLES  dw      32
+AMOUNT_SAMPLES  dw      128
 CURRENT_SAMPLE  dw      0
 MAX_DELAY       dw      3
 CUR_DEL         dw      0
-IS_STOP         dw      0h
+IS_STOP         dw      1h
 ACCESS_STATUS   dw      0
 
-
-DATA    dw 9698, 8608, 8126, 7240, 6450, 8126, 6450, 6450
-        dw 6834, 8609, 6834, 6834, 7240, 9122, 7240, 7240
-        dw 9698, 8609, 8126, 7240, 6450 ,8126 ,6450, 5119
-        dw 5424, 6450, 9126, 6450, 5424, 5424, 5424, 5424
-        dw 9698, 8608, 8126, 7240, 6450, 8126, 6450, 6450
-        dw 6834, 8609, 6834, 6834, 7240, 9122, 7240, 7240
-        dw 9698, 8609, 8126, 7240, 6450 ,8126 ,6450, 5119
-        dw 5424, 6450, 9126, 6450, 5424, 5424, 5424, 5424
+PLAY_MUSIC      dw      DATA
 
 ;
-; timer:
-;         push ax bx di
-;         mov ax, cs:[IS_STOP]
-;         cmp ax, 00FFh
-;         je pop_plus_int
-;
-;         mov ax, word ptr cs:[MAX_DELAY]
-;         mov bx, word ptr cs:[CUR_DEL]
-;         cmp ax, bx
-;         jne delay
-;
-;         mov word ptr cs:[CUR_DEL], 0
-;         jmp not_delay
-;
-; delay:
-;         inc bx
-;         mov word ptr cs:[CUR_DEL], bx
-;         jmp pop_plus_int
-;
-; not_delay:
-;
-;         mov al, 0b6h
-;         out 43h, al
-;
-;         mov bx, word ptr cs:[CURRENT_SAMPLE]
-;         shl bx, 1                   ; Умножаем на 2 (размер WORD)
-;         mov ax, cs:[DATA + bx]
-;         mov ax, cs:[ACCESS_STATUS]
-;         cmp ax, 1
-;         je nothing_to_add
-;
-; add_to_not_access:
-;         add bx, cs:[AMOUNT_SAMPLES]
-;
-; nothing_to_add:
-;
-;         mov al, cs:[bx]
-;         out 42h, al
-;         mov al, cs:[bx + 1]
-;         out 42h, al
-;
-;         in al, 61h
-;         or al, 3
-;         out 61h, al
-;
-;         mov bx, word ptr cs:[CURRENT_SAMPLE]
-;         mov ax, word ptr cs:[AMOUNT_SAMPLES]
-;
-;         cmp ax, bx
-;         jne not_overload
-;
-;         mov word ptr cs:[CURRENT_SAMPLE], 0
-;         jmp pop_plus_int
-;
-; not_overload:
-;         mov ax, cs:[CURRENT_SAMPLE]
-;         inc ax
-;         mov cs:[CURRENT_SAMPLE], ax
-;
-; pop_plus_int:
-;         pop di bx ax
-;
-; standard_int:
-;         db CODE_FAR_JUMP
-; standard_offset     dw      0
-; standard_segment    dw      0
-;
-; AMOUNT_SAMPLES  dw      3
-; CURRENT_SAMPLE  dw      0
-;
-; MAX_DELAY   dw      5
-; CUR_DEL dw      0
-; IS_STOP dw      00FFh
-; ACCESS_STATUS   dw      0
-;
-; DATA    dw   1000, 1000, 1000, 1000, 1000, 10000
-;         dw   1000, 1000, 1000, 1000, 1000, 10000
-
 ; DATA    dw 9698, 8608, 8126, 7240, 6450, 8126, 6450, 6450
 ;         dw 6834, 8609, 6834, 6834, 7240, 9122, 7240, 7240
 ;         dw 9698, 8609, 8126, 7240, 6450 ,8126 ,6450, 5119
 ;         dw 5424, 6450, 9126, 6450, 5424, 5424, 5424, 5424
-;         dw 0   , 0   , 0   , 0   , 0   , 0   , 0   , 0
-;         dw 9698, 8608, 8126, 7240, 6450, 8126, 6450, 6450
-;         dw 6834, 8609, 6834, 6834, 7240, 9122, 7240, 7240
-;         dw 9698, 8609, 8126, 7240, 6450 ,8126 ,6450, 5119
-;         dw 5424, 6450, 9126, 6450, 5424, 5424, 5424, 5424
-;         dw 0   , 0   , 0   , 0   , 0   , 0   , 0   , 0
+;         dw 6088, 6088, 6088, 3835, 5119, 6088, 3835, 5119
+;         dw 6088, 6088, 6088, 3835, 5119, 6088, 3835, 5119
+;         dw 4561, 4561, 4561, 4063, 5119, 6088, 3835, 5119
+;         dw 6088, 6088, 3044, 3044, 3044, 3835, 5119, 6088
 
 
-; DATA dw 6088, 6088,    0,    0, 6088, 6088,    0,    0, 6088, 6088
+DATA    dw 4832, 4063, 3225, 4832, 4063, 3225, 4832, 4063  ; 01-08
+        dw 3225, 4832, 4063, 3225, 4832, 4063, 3225, 4832  ; 09-16
+        dw 4561, 3619, 3044, 4561, 3619, 3044, 4561, 3619  ; 17-24
+        dw 3044, 4561, 3619, 3044, 4561, 3619, 3044, 4561  ; 25-32
+        dw 4063, 3225, 2712, 4063, 3225, 2712, 4063, 3225  ; 33-40
+        dw 2712, 4063, 3225, 2712, 4063, 3225, 2712, 4063  ; 41-48
+        dw 3619, 3044, 2416, 3619, 3044, 2416, 3619, 3044  ; 49-56
+        dw 2416, 3619, 3044, 2416, 3619, 3044, 2416, 3619  ; 57-64
+        dw 4832, 4063, 3225, 4832, 4063, 3225, 4832, 4063  ; 65-72
+        dw 3225, 4832, 4063, 3225, 4832, 4063, 3225, 4832  ; 73-80
+        dw 4561, 3619, 3044, 4561, 3619, 3044, 4561, 3619  ; 81-88
+        dw 3044, 4561, 3619, 3044, 4561, 3619, 3044, 4561  ; 89-96
+        dw 3225, 2712, 2280, 3225, 2712, 2280, 3225, 2712  ; 97-104
+        dw 2280, 3225, 2712, 2280, 3225, 2712, 2280, 3225  ; 105-112
+        dw 2712, 2416, 2280, 2712, 2416, 2280, 2712, 2416  ; 113-120
+        dw 2280, 2712, 2416, 2280, 2712, 2416, 2280, 2280  ; 121-128
+        dw 6088, 6088, 6088, 3835, 5119, 6088, 3835, 5119  ; 01-08
+        dw 6088, 6088, 6088, 3835, 5119, 6088, 3835, 5119  ; 09-16
+        dw 4561, 4561, 4561, 4063, 5119, 6088, 3835, 5119  ; 17-24
+        dw 6088, 6088, 3044, 3044, 3044, 3835, 5119, 6088  ; 25-32
+        dw 6088, 6088, 6088, 3835, 5119, 6088, 3835, 5119  ; 33-40
+        dw 4561, 4561, 4561, 4063, 5119, 6088, 3835, 5119  ; 41-48
+        dw 6088, 6088, 3044, 3044, 3044, 3835, 5119, 6088  ; 49-56
+        dw 3835, 3835, 3835, 3044, 3835, 4561, 4561, 3835  ; 57-64
+        dw 6088, 6088, 6088, 3835, 5119, 6088, 3835, 5119  ; 65-72
+        dw 6088, 6088, 6088, 3835, 5119, 6088, 3835, 5119  ; 73-80
+        dw 4561, 4561, 4561, 4063, 5119, 6088, 3835, 5119  ; 81-88
+        dw 6088, 6088, 3044, 3044, 3044, 3835, 5119, 6088  ; 89-96
+        dw 5119, 5119, 5119, 4561, 5119, 6088, 5119, 4561  ; 97-104
+        dw 3835, 3835, 3835, 3044, 3835, 4561, 4561, 3835  ; 105-112
+        dw 6088, 6088, 6088, 6088, 6088, 6088, 6088, 6088  ; 113-120
+        dw 6088, 6088, 6088, 6088, 6088, 6088, 6088, 6088  ; 121-128
+
+; DATA dw 6088   6088,    0,    0, 6088, 6088,    0,    0, 6088, 6088
 ;      dw    0,    0, 3835, 3835,    0,    0, 5119, 5119,    0,    0
 ;      dw 6088, 6088,    0,    0, 3835, 3835,    0,    0, 5119, 5119
 ;      dw    0,    0, 6088, 6088, 6088, 6088,    0,    0, 6088, 6088
@@ -441,10 +399,7 @@ keyboard:
 
         push ax
         in al, 60h
-        cmp al, 2 ;1fh - scan code of 'S'
-        je start_msc
-
-        cmp al, 3
+        cmp al, 1ch;1fh - scan code of 'S'
         je stop_msc
 
         pop ax
@@ -454,17 +409,40 @@ standard_key:
 standard_key_offset     dw      0
 standard_key_segment    dw      0
 
-start_msc:
-        mov ax, 0h
-        mov cs:[IS_STOP], ax
-        pop ax
-        jmp standard_key
+; switcher:
+;         mov ax, cs:[IS_STOP]
+;         cmp ax, 1h
+;         je start_msc
+;         mov cs:[IS_STOP], 1h
+;         ; in al, 61h
+;         ; and al, 11111100b
+;         ; out 61h, al
+;         pop ax
+;         jmp standard_key
+;
+; start_msc:
+;         mov cs:[IS_STOP], 0h
+;         pop ax
+;         jmp standard_key
 
 stop_msc:
-        mov ax, 1h
-        mov cs:[IS_STOP], ax
+        cmp cs:[ACCESS_STATUS], 1
+        jne b1
+        push ax bx cx di es
+        call crack_fon
+        pop es di cx bx ax
+
+b1:
+        mov cs:[ACCESS_STATUS], 0h
+        mov cs:[IS_STOP], 1h
+        in al, 61h
+        and al, 11111100b
+        out 61h, al
         pop ax
+
         jmp standard_key
+
+
 end_resident:
 
 ;------------------------------------------------------------------------------
@@ -506,6 +484,24 @@ replace_irq_address     PROC
         pop es
 
         pop cx bx dx di
+        ret
+                        ENDP
+
+crack_fon               PROC
+        push 0b800h
+        pop es
+        xor di, di
+        mov cx, 4000
+
+@@next:
+        mov ax, word ptr cs:[bx]
+        mov word ptr es:[di], ax
+        inc bx
+        inc bx
+        inc di
+        inc di
+        loop @@next
+
         ret
                         ENDP
 
