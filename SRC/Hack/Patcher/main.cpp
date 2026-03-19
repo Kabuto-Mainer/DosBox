@@ -34,6 +34,19 @@ int main() {
 //     FILE *stream = fopen(NAME_PROGRAM_FILE, "rb");
 //     fread(buffer, size, sizeof(char), stream);
 //     fclose(stream);
+//
+//     int size = (int) get_file_size(NAME_PROGRAM_FILE);
+//     char *buffer = create_file_buffer(NAME_PROGRAM_FILE);
+//
+//     patch_program(buffer);
+//
+    // create_file_from_buffer(NAME_PROGRAM_FILE, buffer, (size_t) size);
+    // hash_t correct = get_hash(buffer, size);
+
+
+//     printf("%zu %zu %zu %zu\n", correct[0], correct[1], correct[2], correct[3]);
+//     printf("%d\n", hash_equal(correct, PATCHED_FILE_HASH));
+//
 
     patcher_UI();
 
@@ -108,11 +121,19 @@ int patch_file(const char *name) {
     char *buffer = create_file_buffer(name);
 
     int cor_value = check_correct_file(buffer, size_file);
-    if (cor_value == -1)    return _MENU_UNKNOWN_FILE;
-    if (cor_value == 1)     return _MENU_ALREADY_PATCHED;
+    if (cor_value == -1) {
+        free(buffer);
+        return _MENU_UNKNOWN_FILE;
+    }
+    if (cor_value == 1) {
+        free(buffer);
+        return _MENU_ALREADY_PATCHED;
+    }
 
     patch_program(buffer);
+    create_file_from_buffer(NAME_PATCHED_FILE, buffer, size_file);;
 
+    free(buffer);
     return _MENU_PATCHED;
 }
 
@@ -148,8 +169,8 @@ static void patch_program(char *buffer) {
 
 
     /* Crack second weak */
-    buffer[0x1C] = (char) 0xEB;
-    buffer[0x1D] = (char) 0x18;
+    buffer[0x07] = (char) 0xEB;
+    buffer[0x08] = (char) 0x18;
 
     return ;
 }
@@ -736,4 +757,24 @@ static char * create_file_buffer(const char *name_file) {
     buffer[amount_chars] = '\0';
 
     return buffer;
+}
+
+/**
+ * @brief Create a file from buffer
+ *
+ * @param name_file Name file, where write data
+ * @param buffer Buffer with data
+ * @param size Size buffer
+ */
+static void create_file_from_buffer(const char *name_file, const char *buffer, size_t size) {
+    assert(name_file);
+    assert(buffer);
+
+    FILE *stream = fopen(name_file, "wb");
+    if (stream == NULL) EXIT_FUNC("NULL FILE", );
+
+    fwrite(buffer, sizeof(char), size, stream);
+    fclose(stream);
+
+    return ;
 }

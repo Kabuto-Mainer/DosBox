@@ -10,7 +10,8 @@
 
 // -------------------------------------------------------------------------------------------------------
 
-static const char *NAME_PROGRAM_FILE    = "PSW.asm";
+static const char *NAME_PROGRAM_FILE    = "1.com";
+static const char *NAME_PATCHED_FILE    = "1_crack.com";
 static const char *NAME_FONT_FILE       = "font.ttf";
 static const char *FONE_MUSIC           = "music.mp3";
 static const int SCREEN_WIDTH   = 400;
@@ -72,8 +73,7 @@ static const int VOLUME_FONE_MUSIC = MIX_MAX_VOLUME / 4;
 #define _MENU_ALREADY_PATCHED 3
 #define _MENU_UNKNOWN_FILE 4
 
-static const hash_t NOT_PATCHED_FILE_HASH = {0, 0, 0, 0};
-static const hash_t PATCHED_FILE_HASH = {0, 0, 0, 0};
-
+static const hash_t NOT_PATCHED_FILE_HASH = {876291916305100409ULL, 14043540263622069639ULL, 4144267957861343658ULL,  948296315484125676ULL};
+static const hash_t PATCHED_FILE_HASH =     {876291916305100409ULL, 5124864889056578951ULL, 14026009965242343850ULL, 948296315484125676ULL};
 
 #endif /* CONST_H */

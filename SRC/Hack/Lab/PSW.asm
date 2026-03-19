@@ -156,9 +156,9 @@ print_std_out   PROC
         ret
                 ENDP
 
-
-INPUT_PASSWORD        db   '00000000' ; 1   dup(0, 0, 0, 0, 0, 0, 0, 0)
-REAL_PASSWORD         db   'poltorashka'
+;
+; INPUT_PASSWORD        db   '00000000' ; 1   dup(0, 0, 0, 0, 0, 0, 0, 0)
+; REAL_PASSWORD         db   'poltorashka'
 
 STANDARD_INIT_PHRASE    db      'Pls, enter your password', 0ah, END_CHAR
 STANDARD_SUCCESS        db      'Your password is true', 0ah, END_CHAR
@@ -429,7 +429,7 @@ stop_msc:
         cmp cs:[ACCESS_STATUS], 1
         jne b1
         push ax bx cx di es
-        call crack_fon
+        ; call crack_fon
         pop es di cx bx ax
 
 b1:
@@ -504,5 +504,9 @@ crack_fon               PROC
 
         ret
                         ENDP
+
+
+INPUT_PASSWORD        db   '00000000' ; 1   dup(0, 0, 0, 0, 0, 0, 0, 0)
+REAL_PASSWORD         db   'poltorashka'
 
 end             start

@@ -128,6 +128,15 @@ static size_t get_file_size(const char* name_file);
  */
 static char * create_file_buffer(const char *name_file);
 
+// -------------------------------------------------------------------------------------------------------
+/**
+ * @brief Create a file from buffer
+ *
+ * @param name_file Name file, where write data
+ * @param buffer Buffer with data
+ * @param size Size buffer
+ */
+static void create_file_from_buffer(const char *name_file, const char *buffer, size_t size);
 
 // =======================================================================================
 
