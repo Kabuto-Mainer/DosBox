@@ -1,0 +1,259 @@
+Общая информация:
+Пароль хранится с 0172h адреса
+Хеширование простой суммой
+
+
+
+00000000: BB7201          mov bx,0172
+00000003: B90000          mov cx,0000
+00000006: BA9090          mov dx,9090
+00000009: B80001          mov ax,0100
+0000000C: CD21            int 21
+
+Получили символ в al
+
+0000000E: 3C0D            cmp al,0D
+00000010: 7406      (1)   je 00000018
+                          je END_1
+
+Сравнили с '\n'
+Если равен, но идем на конец
+Если не равен, то записываем в [bx], увеличиваем cx и bx
+cx - счетчик длины пароля
+
+00000012: 8807            mov byte ptr [bx],al
+00000014: 43              inc bx
+00000015: 41              inc cx
+00000016: EBF1      (2)   jmp 00000009
+
+END_1:
+
+В [011C] - 9090h
+00000018: 89161C01        mov word ptr [011C],dx
+
+
+??
+0000001C: 90              nop
+0000001D: 90              nop
+
+
+Вызываем хеширование
+
+0000001E: BE7201          mov si,0172
+00000021: E86301    (3)   call 00000187
+
+
+00000024: A1D601          mov ax,[01D6]
+
+00000027: 3BD8            cmp bx,ax
+00000029: 740B      (4)   jz 00000036
+0000002B: BF6401          mov di,0164
+0000002E: B4CF            mov ah,CF
+00000030: E8B600    (5)   call 000000E9
+00000033: EB09      (6)   jmp 0000003E
+00000033: EB09      (1)   jmp 0000003E
+00000035: 90              nop
+
+
+00000036: BF5501          mov di,0155
+00000039: B4AF            mov ah,AF
+0000003B: E8AB00    (2)   call 000000E9
+0000003E: B80001          mov ax,0100
+00000041: CD21            int 21
+00000043: E89200    (3)   call 000000D8
+00000046: B8004C          mov ax,4C00
+00000049: CD21            int 21
+0000004B: 0000            add byte ptr [bx+si],al
+0000004D: 0000            add byte ptr [bx+si],al
+0000004F: CDBA            int BA
+00000051: C9              leave
+00000052: BBC8BC          mov bx,BCC8
+00000055: 41              inc cx
+00000056: 43              inc bx
+00000057: 43              inc bx
+00000058: 45              inc bp
+00000059: 53              push bx
+0000005A: 53              push bx
+0000005B: 204752          and byte ptr [bx+52],al
+0000005E: 41              inc cx
+0000005E: 41              inc cx
+0000005F: 4E              dec si
+00000060: 54              push sp
+00000061: 45              inc bp
+00000062: 44              inc sp
+00000063: 2441            and al,41
+00000065: 43              inc bx
+00000066: 43              inc bx
+00000067: 45              inc bp
+00000068: 53              push bx
+00000069: 53              push bx
+0000006A: 204445          and byte ptr [si+45],al
+0000006D: 4E              dec si
+0000006E: 49              dec cx
+0000006F: 45              inc bp
+00000070: 44              inc sp
+00000071: 2401            and al,01
+00000073: 0101            add word ptr [bx+di],ax
+00000075: 0101            add word ptr [bx+di],ax
+00000077: 0101            add word ptr [bx+di],ax
+00000079: 0101            add word ptr [bx+di],ax
+0000007B: 0101            add word ptr [bx+di],ax
+0000007D: 0101            add word ptr [bx+di],ax
+0000007D: 0101            add word ptr [bx+di],ax
+0000007F: 0101            add word ptr [bx+di],ax
+00000081: 0101            add word ptr [bx+di],ax
+00000083: 0101            add word ptr [bx+di],ax
+00000085: 0101            add word ptr [bx+di],ax
+00000087: 0101            add word ptr [bx+di],ax
+00000089: 0101            add word ptr [bx+di],ax
+0000008B: 0101            add word ptr [bx+di],ax
+0000008D: 0101            add word ptr [bx+di],ax
+0000008F: 0101            add word ptr [bx+di],ax
+00000091: 0101            add word ptr [bx+di],ax
+00000093: 0101            add word ptr [bx+di],ax
+00000095: 0101            add word ptr [bx+di],ax
+00000097: 0101            add word ptr [bx+di],ax
+00000099: 0101            add word ptr [bx+di],ax
+0000009B: 0101            add word ptr [bx+di],ax
+0000009D: 0101            add word ptr [bx+di],ax
+0000009F: 0101            add word ptr [bx+di],ax
+000000A1: 0101            add word ptr [bx+di],ax
+000000A3: 0101            add word ptr [bx+di],ax
+000000A5: 0101            add word ptr [bx+di],ax
+000000A7: 0101            add word ptr [bx+di],ax
+000000A9: 0101            add word ptr [bx+di],ax
+000000AB: 0101            add word ptr [bx+di],ax
+000000AD: 0101            add word ptr [bx+di],ax
+000000AF: 0101            add word ptr [bx+di],ax
+000000B1: 0101            add word ptr [bx+di],ax
+000000B3: 0101            add word ptr [bx+di],ax
+000000B5: 0101            add word ptr [bx+di],ax
+000000B7: 0101            add word ptr [bx+di],ax
+000000B9: 0101            add word ptr [bx+di],ax
+000000BB: 0101            add word ptr [bx+di],ax
+000000BD: 0101            add word ptr [bx+di],ax
+000000BF: 0101            add word ptr [bx+di],ax
+000000C1: 0101            add word ptr [bx+di],ax
+000000C3: 0101            add word ptr [bx+di],ax
+000000C5: 0101            add word ptr [bx+di],ax
+000000C7: 0101            add word ptr [bx+di],ax
+000000C9: 0101            add word ptr [bx+di],ax
+000000CB: 0101            add word ptr [bx+di],ax
+000000CD: 0101            add word ptr [bx+di],ax
+000000CF: 0101            add word ptr [bx+di],ax
+000000D1: 0101            add word ptr [bx+di],ax
+000000D3: 0101            add word ptr [bx+di],ax
+000000D5: 0137            add word ptr [bx],si
+000000D7: 0450            add al,50
+000000D9: 51              push cx
+000000DA: 57              push di
+000000DB: 33FF            xor di,di
+000000DD: B80000          mov ax,0000
+000000E0: B9D007          mov cx,07D0
+000000E3: F3AB            repe stosw es:[di],ax
+000000E5: 5F              pop di
+000000E6: 59              pop cx
+000000E7: 58              pop ax
+000000E8: C3              ret
+000000E9: 50              push ax
+000000EA: 57              push di
+000000EB: E84400    (1)   call 00000132
+000000EE: A34D01          mov [014D],ax
+000000F1: E85100    (2)   call 00000145
+000000F4: A34B01          mov [014B],ax
+000000F7: B800B8          mov ax,B800
+000000FA: 8EC0            mov es,ax
+000000FC: 5F              pop di
+000000FD: 58              pop ax
+000000FE: 8BF7            mov si,di
+00000100: BB0000          mov bx,0000
+00000103: E85800    (3)   call 0000015E
+00000103: E85800    (1)   call 0000015E
+00000106: 81064B01A000    add word ptr [014B],00A0
+0000010C: 8B3E4B01        mov di,word ptr [014B]
+00000110: A05001          mov al,[0150]
+00000113: AB              stosw es:[di],ax
+00000114: B000            mov al,00
+00000116: AB              stosw es:[di],ax
+00000117: E86400    (2)   call 0000017E
+0000011A: B000            mov al,00
+
+
+
+0000011C: AB              stosw es:[di],ax
+0000011D: A05001          mov al,[0150]
+00000120: AB              stosw es:[di],ax
+00000121: 81064B01A000    add word ptr [014B],00A0
+00000127: 8B3E4B01        mov di,word ptr [014B]
+0000012B: BB0100          mov bx,0001
+0000012E: E82D00    (3)   call 0000015E
+00000131: C3              ret
+00000132: 06              push es
+00000133: 1E              push ds
+00000134: 07              pop es
+00000135: FC              cld
+00000136: B91400          mov cx,0014
+00000139: B024            mov al,24
+00000139: B024            mov al,24
+0000013B: F2AE            repne scasb es:[di],al
+0000013D: B81400          mov ax,0014
+00000140: 2BC1            sub ax,cx
+00000142: 48              dec ax
+00000143: 07              pop es
+00000144: C3              ret
+
+
+00000145: 8B1E4D01        mov bx,word ptr [014D]
+00000149: 81E3FE00        and bx,00FE
+0000014D: B80900          mov ax,0009
+00000150: BA00A0          mov dx,00A0
+00000153: F7E2            mul dx
+00000155: 055000          add ax,0050
+00000158: 2BC3            sub ax,bx
+0000015A: 2D0400          sub ax,0004
+0000015D: C3              ret
+
+
+Функция для вывода рамки
+
+0000015E: D1E3            shl bx,1
+00000160: 83C302          add bx,0002
+00000163: 8B3E4B01        mov di,word ptr [014B]
+00000167: 8A874F01        mov al,byte ptr [bx+014F]
+0000016B: AB              stosw es:[di],ax
+0000016C: 8B0E4D01        mov cx,word ptr [014D]
+00000170: 83C102          add cx,0002
+00000160: 83C302          add bx,0002
+00000163: 8B3E4B01        mov di,word ptr [014B]
+00000167: 8A874F01        mov al,byte ptr [bx+014F]
+0000016B: AB              stosw es:[di],ax
+0000016C: 8B0E4D01        mov cx,word ptr [014D]
+00000170: 83C102          add cx,0002
+00000173: A04F01          mov al,[014F]
+00000176: F3AB            repe stosw es:[di],ax
+00000178: 8A875001        mov al,byte ptr [bx+0150]
+0000017C: AB              stosw es:[di],ax
+0000017D: C3              ret
+
+
+Также отвечает за вывод рамки
+
+0000017E: 8B0E4D01        mov cx,word ptr [014D]
+00000182: AC              lodsb al,ds:[si]
+00000183: AB              stosw es:[di],ax
+00000184: E2FC      (1)   loop 00000182
+00000186: C3              ret
+
+
+Хеш функция
+
+00000187: 33DB            xor bx,bx
+00000189: 33C0            xor ax,ax
+0000018B: AC              lodsb al,ds:[si]
+0000018C: 03D8            add bx,ax
+0000018E: E2FB      (2)   loop 0000018B
+00000190: C3              ret
+
+
+
+00000191: ..              add byte ptr [bx+si],al

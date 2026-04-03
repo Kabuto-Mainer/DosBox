@@ -1,0 +1,288 @@
+Turbo Assembler	 Version 4.1	    03/16/26 10:53:00	    Page 1
+psw.asm
+
+
+
+      1	    0000			 .model	tiny
+      2					 .386
+      3					 Locals	@@
+      4
+      5		  =000D			 CHAR_END_INPUT	 equ	 0dh
+      6		  =0000			 END_CHAR	 equ	 0h
+      7		  =00EA			 CODE_FAR_JUMP		 equ	 00eah
+      8
+      9	    0000			 .code
+     10					 org 100h
+     11
+     12	    0100			 start:
+     13	    0100  E8 00C7			 call init_hash_func
+     14
+     15	    0103  0E				 push cs
+     16	    0104  07				 pop es
+     17
+     18	    0105  BF 0203r			 mov di, offset	REAL_PASSWORD
+     19	    0108  B9 0008			 mov cx, 8
+     20
+     21					 ;call get_hash
+     22	    010B  9C				 pushf
+     23	    010C  0E				 push cs
+     24	    010D  68 0113r			 push offset after_hash_real
+     25
+     26	    0110  EB 3D	90			 jmp get_hash_jmp
+     27
+     28	    0113			 after_hash_real:
+     29
+     30	    0113  50				 push ax
+     31	    0114  BF 017Dr			 mov di, offset	STANDARD_INIT_PHRASE
+     32	    0117  E8 004D			 call print_std_out
+     33
+     34	    011A  BF 01FBr			 mov di, offset	INPUT_PASSWORD
+     35	    011D  E8 0034			 call get_std_inp
+     36
+     37	    0120  0E				 push cs
+     38	    0121  07				 pop es
+     39
+     40	    0122  BF 01FBr			 mov di, offset	INPUT_PASSWORD
+     41	    0125  B9 0008			 mov cx, 8
+     42
+     43	    0128  9C				 pushf
+     44	    0129  0E				 push cs
+     45	    012A  68 0130r			 push offset after_hash_user
+     46
+     47	    012D  EB 20	90			 jmp get_hash_jmp
+     48
+     49	    0130			 after_hash_user:
+     50	    0130  0E				 push cs
+     51	    0131  07				 pop es
+     52
+     53						 ; mov di, offset STANDARD_FAILED
+     54						 ; call	print_std_out
+     55
+     56	    0132  5B				 pop bx
+     57	    0133  3B C3				 cmp ax, bx
+Turbo Assembler	 Version 4.1	    03/16/26 10:53:00	    Page 2
+psw.asm
+
+
+
+     58
+     59	    0135  74 0D	90 90			 je not_success
+     60	    0139  BF 0197r			 mov di, offset	STANDARD_SUCCESS
+     61	    013C  E8 0028			 call print_std_out
+     62
+     63	    013F  B8 4C00			 mov ax, 4C00h
+     64	    0142  CD 21				 int 21h
+     65
+     66	    0144			 not_success:
+     67	    0144  BF 01AEr			 mov di, offset	STANDARD_FAILED
+     68	    0147  E8 001D			 call print_std_out
+     69
+     70	    014A  B8 4C00			 mov ax, 4C00h
+     71	    014D  CD 21				 int 21h
+     72
+     73
+     74	    014F			 get_hash_jmp:
+     75	    014F  EA				 db CODE_FAR_JUMP
+     76	    0150  0000			 hash_segment	 dw	 0
+     77	    0152  0000			 hash_offset	 dw	 0
+     78
+     79
+     80
+     81					 ;------------------------------------------------------------------------------
+     82					 ; get_std_inp
+     83					 ;
+     84					 ; get text from standard input
+     85					 ; Entry:
+     86					 ;	 es:[di] - start address
+     87					 ; Destroy:
+     88					 ;	 di
+     89					 ;------------------------------------------------------------------------------
+     90	    0154			 get_std_inp	 PROC
+     91	    0154  50				 push ax
+     92
+     93	    0155			 @@next:
+     94	    0155  B4 01				 mov ah, 01h
+     95	    0157  CD 21				 int 21h
+     96
+     97	    0159  3C 0D				 cmp al, CHAR_END_INPUT
+     98	    015B  74 08	90 90			 je @@end
+     99
+    100	    015F  26: 88 05			 mov byte ptr es:[di], al
+    101	    0162  47				 inc di
+    102	    0163  EB F0				 jmp @@next
+    103
+    104	    0165			 @@end:
+    105	    0165  58				 pop ax
+    106	    0166  C3				 ret
+    107	    0167					 ENDP
+    108
+    109					 ;------------------------------------------------------------------------------
+    110					 ; print_std_inp
+    111					 ;
+    112					 ; print text to standard output
+    113					 ; Entry:
+    114					 ;	 es:[di] - start text
+Turbo Assembler	 Version 4.1	    03/16/26 10:53:00	    Page 3
+psw.asm
+
+
+
+    115					 ; Destroy:
+    116					 ;	 di
+    117					 ;------------------------------------------------------------------------------
+    118	    0167			 print_std_out	 PROC
+    119	    0167  50 52				 push ax dx
+    120	    0169  B4 06				 mov ah, 06h	 ;dos output func
+    121
+    122	    016B			 @@next:
+    123	    016B  26: 8A 15			 mov dl, byte ptr es:[di]
+    124	    016E  80 FA	00			 cmp dl, END_CHAR
+    125	    0171  74 07	90 90			 je @@end
+    126	    0175  CD 21				 int 21h
+    127	    0177  47				 inc di
+    128	    0178  EB F1				 jmp @@next
+    129
+    130	    017A			 @@end:
+    131	    017A  5A 58				 pop dx	ax
+    132	    017C  C3				 ret
+    133	    017D					 ENDP
+    134
+    135	    017D  50 6C	73 2C 20 65 6E+	 STANDARD_INIT_PHRASE	 db	 'Pls, enter your password', 0ah, END_CHAR
+    136		  74 65	72 20 79 6F 75+
+    137		  72 20	70 61 73 73 77+
+    138		  6F 72	64 0A 00
+    139	    0197  59 6F	75 72 20 70 61+	 STANDARD_SUCCESS	 db	 'Your password	is true', 0ah, END_CHAR
+    140		  73 73	77 6F 72 64 20+
+    141		  69 73	20 74 72 75 65+
+    142		  0A 00
+    143	    01AE  55 55	55 55 55 21 20+	 STANDARD_FAILED	 db	 'UUUUU! Meow',	0ah, END_CHAR
+    144		  4D 65	6F 77 0A 00
+    145
+    146
+    147
+    148					 ;------------------------------------------------------------------------------
+    149					 ; get_hash
+    150					 ;
+    151					 ; Note	!!
+    152					 ; This	function use iret to return to needed place
+    153					 ; Entry:
+    154					 ;	 es:[di] - start address of string
+    155					 ;	 cx - len string
+    156					 ; Return:
+    157					 ;	 ax - hash
+    158					 ; Destroy:
+    159					 ;	 di
+    160					 ;------------------------------------------------------------------------------
+    161	    01BB			 get_hash		 PROC
+    162
+    163	    01BB  53				 push bx
+    164	    01BC  33 DB				 xor bx, bx
+    165	    01BE  33 C0				 xor ax, ax
+    166
+    167	    01C0			 @@next:
+    168	    01C0  26: 8A 1D			 mov byte ptr bl, es:[di]
+    169	    01C3  03 C3				 add ax, bx
+    170	    01C5  47				 inc di
+    171	    01C6  E2 F8				 loop @@next
+Turbo Assembler	 Version 4.1	    03/16/26 10:53:00	    Page 4
+psw.asm
+
+
+
+    172
+    173	    01C8  5B				 pop bx
+    174	    01C9  CF				 iret
+    175
+    176	    01CA			 end_get_hash:
+    177	    01CA						 ENDP
+    178
+    179	    01CA			 init_hash_func		 PROC
+    180	    01CA  50 53	51 57 06		 push ax bx cx di es
+    181
+    182	    01CF  B8 01BBr			 mov ax, offset	get_hash
+    183	    01D2  BB 01CAr			 mov bx, offset	end_get_hash
+    184	    01D5  2B D8				 sub bx, ax
+    185	    01D7  8B CB				 mov cx, bx
+    186	    01D9  41				 inc cx
+    187	    01DA  8B D8				 mov bx, ax
+    188
+    189	    01DC  68 B800			 push 0b800h
+    190	    01DF  07				 pop es
+    191	    01E0  BF 0FA0			 mov di, 4000
+    192
+    193	    01E3  8C 06	0152r			 mov word ptr [hash_offset], es
+    194	    01E7  89 3E	0150r			 mov word ptr [hash_segment], di
+    195
+    196	    01EB			 @@next:
+    197	    01EB  2E: 8A 07			 mov al, byte ptr cs:[bx]
+    198	    01EE  26: 88 05			 mov byte ptr es:[di], al
+    199	    01F1  43				 inc bx
+    200	    01F2  47				 inc di
+    201	    01F3  E2 F6				 loop @@next
+    202
+    203	    01F5  07 5F	59 5B 58		 pop es	di cx bx ax
+    204	    01FA  C3				 ret
+    205	    01FB						 ENDP
+    206	    01FB  30 30	30 30 30 30 30+	 INPUT_PASSWORD	       db   '00000000' ; 1   dup(0, 0, 0, 0, 0,	0, 0, 0)
+    207		  30
+    208	    0203  30 30	30 30 30 30 30+	 REAL_PASSWORD	       db   '00000000'
+    209		  30
+    210
+    211					 end		 start
+Turbo Assembler	 Version 4.1	    03/16/26 10:53:00	    Page 5
+Symbol Table
+
+
+
+
+Symbol Name			  Type	 Value
+
+??DATE				  Text	 "03/16/26"
+??FILENAME			  Text	 "psw	  "
+??TIME				  Text	 "10:53:00"
+??VERSION			  Number 040A
+@32BIT				  Text	 0
+@@END				  Near	 DGROUP:0165
+@@END				  Near	 DGROUP:017A
+@@NEXT				  Near	 DGROUP:0155
+@@NEXT				  Near	 DGROUP:016B
+@@NEXT				  Near	 DGROUP:01C0
+@@NEXT				  Near	 DGROUP:01EB
+@CODE				  Text	 DGROUP
+@CODESIZE			  Text	 0
+@CPU				  Text	 0F0FH
+@CURSEG				  Text	 _TEXT
+@DATA				  Text	 DGROUP
+@DATASIZE			  Text	 0
+@FILENAME			  Text	 PSW
+@INTERFACE			  Text	 000H
+@MODEL				  Text	 1
+@STACK				  Text	 DGROUP
+@WORDSIZE			  Text	 2
+AFTER_HASH_REAL			  Near	 DGROUP:0113
+AFTER_HASH_USER			  Near	 DGROUP:0130
+CHAR_END_INPUT			  Number 000D
+CODE_FAR_JUMP			  Number 00EA
+END_CHAR			  Number 0000
+END_GET_HASH			  Near	 DGROUP:01CA
+GET_HASH			  Near	 DGROUP:01BB
+GET_HASH_JMP			  Near	 DGROUP:014F
+GET_STD_INP			  Near	 DGROUP:0154
+HASH_OFFSET			  Word	 DGROUP:0152
+HASH_SEGMENT			  Word	 DGROUP:0150
+INIT_HASH_FUNC			  Near	 DGROUP:01CA
+INPUT_PASSWORD			  Byte	 DGROUP:01FB
+NOT_SUCCESS			  Near	 DGROUP:0144
+PRINT_STD_OUT			  Near	 DGROUP:0167
+REAL_PASSWORD			  Byte	 DGROUP:0203
+STANDARD_FAILED			  Byte	 DGROUP:01AE
+STANDARD_INIT_PHRASE		  Byte	 DGROUP:017D
+STANDARD_SUCCESS		  Byte	 DGROUP:0197
+START				  Near	 DGROUP:0100
+
+Groups & Segments		  Bit Size Align  Combine Class
+
+DGROUP				  Group
+  _DATA				  16  0000 Word	  Public  DATA
+  _TEXT				  16  020B Word	  Public  CODE
+
